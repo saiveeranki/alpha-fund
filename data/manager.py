@@ -669,16 +669,23 @@ class DataManager:
                 pass
         
         # Align on common dates and compute correlation
-        df = pd.DataFrame(returns_dict).dropna()
+        df = pd.DataFrame(returns_dict)
         
-        if df.empty:
+        if df.empty or len(df) < 5:
             return {"labels": [], "matrix": []}
         
-        corr = df.corr()
+        # Using pairwise correlation which handles missing values much better than global dropna()
+        corr = df.corr(min_periods=10)
+        
+        # Remove columns/rows that resulted in all NaNs (rare but possible if no overlap)
+        corr = corr.dropna(how='all', axis=0).dropna(how='all', axis=1)
+        
+        if corr.empty:
+            return {"labels": [], "matrix": []}
         
         return {
             "labels": corr.columns.tolist(),
-            "matrix": [[round(v, 3) for v in row] for row in corr.values.tolist()],
+            "matrix": [[round(v, 3) if pd.notna(v) else 0 for v in row] for row in corr.values.tolist()],
         }
 
     def get_nifty500_sector_heatmap(self, start_year: int = 2015) -> dict:
@@ -1497,7 +1504,7 @@ class DataManager:
             sp_returns = None
 
         # Build aligned DataFrame
-        df = pd.DataFrame(returns_dict).dropna()
+        df = pd.DataFrame(returns_dict)
         if df.empty:
             return {
                 "beta": None, "sharpe_ratio": None, "max_drawdown": None,
@@ -1506,9 +1513,12 @@ class DataManager:
             }
 
         # Weighted portfolio return series
+        # Fill NaNs with 0 for portfolio calculation so we can sum them, 
+        # but only for days where at least one asset has data.
         weight_arr = np.array([weights.get(c, 0) for c in df.columns])
         weight_arr = weight_arr / weight_arr.sum()  # normalize
-        portfolio_returns = (df.values * weight_arr).sum(axis=1)
+        
+        portfolio_returns = (df.fillna(0).values * weight_arr).sum(axis=1)
         portfolio_series = pd.Series(portfolio_returns, index=df.index)
 
         # Annualized Volatility
@@ -1554,10 +1564,15 @@ class DataManager:
 
         # Correlation mini-matrix (max 8 holdings)
         top_tickers = list(df.columns[:8])
-        corr_df = df[top_tickers].corr()
+        # Pairwise correlation avoids the "empty matrix" bug
+        corr_df = df[top_tickers].corr(min_periods=5)
+        
+        # Replace remaining NaNs in matrix with 0 for safety
+        corr_matrix_data = [[round(v, 3) if pd.notna(v) else 0 for v in row] for row in corr_df.values.tolist()]
+        
         corr_matrix = {
             "labels": [t for t in top_tickers],
-            "matrix": [[round(v, 3) for v in row] for row in corr_df.values.tolist()],
+            "matrix": corr_matrix_data,
         }
 
         # Risk rating helpers
@@ -1571,6 +1586,38 @@ class DataManager:
         sharpe_label = risk_label(-(sharpe or 0), [-2, -1, -0.5, 0], ["Excellent", "Good", "Fair", "Poor", "Negative"])
         drawdown_label = risk_label(abs(max_drawdown or 0), [10, 20, 35], ["Low", "Moderate", "High", "Severe"])
 
+        # --- 1. Rolling Correlation (Portfolio average) ---
+        rolling_corr_series = []
+        if len(df.columns) >= 2:
+            # Compute rolling correlation for all pairs and average them
+            pairs_corr = []
+            cols = df.columns
+            for i in range(len(cols)):
+                for j in range(i + 1, len(cols)):
+                    c = df[cols[i]].rolling(window=30).corr(df[cols[j]])
+                    pairs_corr.append(c)
+            
+            if pairs_corr:
+                avg_rolling = pd.concat(pairs_corr, axis=1).mean(axis=1).dropna()
+                # Sample for frontend
+                for dt, val in avg_rolling.iloc[::5].items():
+                    rolling_corr_series.append({"date": dt.strftime("%Y-%m-%d"), "value": round(float(val), 3)})
+
+        # --- 2. Diversification Score ---
+        # 100% score = 0 correlation. 0% score = 1.0 correlation.
+        if len(corr_df) > 1:
+            indices = np.triu_indices(len(corr_df), k=1)
+            avg_corr = corr_df.values[indices].mean()
+        else:
+            avg_corr = 0
+        corr_score = max(0, min(100, (1 - max(0, avg_corr)) * 100))
+        
+        # Sector bonus: more sectors = higher score
+        unique_sectors = len(set(sectors.values()))
+        sector_bonus = min(20, (unique_sectors / 5) * 20)
+        
+        div_score = round(min(100, (corr_score * 0.8) + sector_bonus), 0)
+
         return {
             "beta": beta,
             "beta_label": beta_label,
@@ -1582,6 +1629,8 @@ class DataManager:
             "annual_return": round(annual_return * 100, 2),
             "sector_exposure": sector_exposure,
             "correlation_matrix": corr_matrix,
+            "rolling_correlation": rolling_corr_series,
+            "diversification_score": div_score,
             "holdings_count": len(holdings),
         }
 

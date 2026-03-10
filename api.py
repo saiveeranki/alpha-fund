@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from data.manager import DataManager
 from engine.magic_formula import rank_stocks
+from engine.backtester import PortfolioBacktester
 import pandas as pd
 
 app = FastAPI(title="Hedge Fund Alpha API", version="1.0")
@@ -236,6 +237,26 @@ async def get_allocation():
     """Returns allocation advice and portfolio comparison."""
     return data_manager.get_allocation_advice()
 
+@app.get("/api/backtest")
+async def get_backtest(period: int = 5):
+    """Returns historical portfolio backtest results."""
+    from data.database import SessionLocal, PortfolioHolding
+    session = SessionLocal()
+    try:
+        holdings = session.query(PortfolioHolding).all()
+        if not holdings:
+            return {"history": [], "stats": {}}
+        
+        holdings_list = [
+            {"ticker": h.ticker, "lump_sum": h.lump_sum or 0, "monthly_sip": h.monthly_sip or 0}
+            for h in holdings
+        ]
+        
+        backtester = PortfolioBacktester(data_manager)
+        return backtester.run(holdings_list, period_years=period)
+    finally:
+        session.close()
+
 @app.on_event("startup")
 async def startup_event():
     """Seed the ticker registry on startup."""
@@ -331,4 +352,4 @@ async def get_ticker_detail(ticker: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("api:app", host="0.0.0.0", port=8001, reload=True)

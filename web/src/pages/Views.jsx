@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { LayoutDashboard, TrendingUp, AlertTriangle, PlayCircle, Grid } from 'lucide-react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
+import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, BarChart, Bar } from 'recharts'
 
 // Mock Data
 export const magicFormulaData = [
@@ -64,7 +64,7 @@ function SvgDonut({ data, size = 200, innerRadius = 60, outerRadius = 90 }) {
 export function DashboardOverview() {
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
-    const API = 'http://127.0.0.1:8000'
+    const API = 'http://127.0.0.1:8001'
 
     useEffect(() => {
         fetch(`${API}/api/dashboard`)
@@ -226,7 +226,7 @@ export function Portfolio() {
     const [detailLoading, setDetailLoading] = useState(false)
     const [editingTicker, setEditingTicker] = useState(null)
 
-    const API = 'http://127.0.0.1:8000'
+    const API = 'http://127.0.0.1:8001'
 
     const loadPortfolio = () => {
         setLoading(true)
@@ -543,7 +543,7 @@ export function Portfolio() {
 export function RiskAnalysis() {
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
-    const API = 'http://127.0.0.1:8000'
+    const API = 'http://127.0.0.1:8001'
 
     useEffect(() => {
         fetch(`${API}/api/risk-analysis`)
@@ -613,15 +613,19 @@ export function RiskAnalysis() {
                     <span className="value">{data.sharpe_ratio != null ? data.sharpe_ratio.toFixed(2) : 'N/A'}</span>
                     <span style={{ color: labelColor(data.sharpe_label), fontWeight: 600, fontSize: '0.85rem' }}>{data.sharpe_label || ''}</span>
                 </div>
-                <div className="metric-card glass-panel" style={{ borderLeft: `4px solid ${labelColor(data.drawdown_label)}` }}>
-                    <span className="label">Max Drawdown</span>
-                    <span className="value" style={{ color: '#ef4444' }}>{data.max_drawdown != null ? data.max_drawdown.toFixed(2) + '%' : 'N/A'}</span>
-                    <span style={{ color: labelColor(data.drawdown_label), fontWeight: 600, fontSize: '0.85rem' }}>{data.drawdown_label || ''}</span>
+                <div className="metric-card glass-panel" style={{ borderLeft: '4px solid var(--accent-blue)' }}>
+                    <span className="label">Diversification Score</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span className="value">{data.diversification_score ?? 'N/A'}%</span>
+                        <div style={{ flex: 1, height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden', minWidth: '40px' }}>
+                            <div style={{ width: `${data.diversification_score ?? 0}%`, height: '100%', background: 'var(--accent-blue)' }}></div>
+                        </div>
+                    </div>
                 </div>
                 <div className="metric-card glass-panel" style={{ borderLeft: '4px solid var(--accent-blue)' }}>
-                    <span className="label">Annualized Volatility</span>
-                    <span className="value">{data.volatility != null ? data.volatility.toFixed(2) + '%' : 'N/A'}</span>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Ann. Return: {data.annual_return != null ? (data.annual_return > 0 ? '+' : '') + data.annual_return.toFixed(2) + '%' : 'N/A'}</span>
+                    <span className="label">Ann. Return / Volatility</span>
+                    <span className="value">{data.annual_return != null ? (data.annual_return > 0 ? '+' : '') + data.annual_return.toFixed(2) + '%' : 'N/A'}</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Vol: {data.volatility != null ? data.volatility.toFixed(2) + '%' : 'N/A'}</span>
                 </div>
             </div>
 
@@ -660,7 +664,7 @@ export function RiskAnalysis() {
                                                     padding: '0.3rem 0.4rem', textAlign: 'center', borderRadius: '4px',
                                                     background: corrColor(val), fontWeight: i === j ? 700 : 500,
                                                     color: i === j ? 'var(--text-muted)' : 'white',
-                                                }}>{val.toFixed(2)}</td>
+                                                }}>{val != null ? val.toFixed(2) : '—'}</td>
                                             ))}
                                         </tr>
                                     ))}
@@ -673,14 +677,54 @@ export function RiskAnalysis() {
                 </div>
             </div>
 
+            {/* Intelligence Section: Rolling Correlation */}
+            <div className="glass-panel" style={{ padding: '1.5rem', marginTop: '1.5rem' }}>
+                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem' }}>Rolling Portfolio Correlation (30D Window)</h3>
+                <div style={{ height: '200px' }}>
+                    {data.rolling_correlation?.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={data.rolling_correlation}>
+                                <defs>
+                                    <linearGradient id="colorCorr" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="var(--accent-blue)" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="var(--accent-blue)" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                <XAxis dataKey="date" hide />
+                                <YAxis domain={[0, 1]} hide />
+                                <Tooltip
+                                    contentStyle={{ background: 'rgba(0,0,0,0.8)', border: '1px solid var(--border-glass)', borderRadius: '8px' }}
+                                    itemStyle={{ color: 'var(--accent-blue)' }}
+                                />
+                                <Area type="monotone" dataKey="value" stroke="var(--accent-blue)" fillOpacity={1} fill="url(#colorCorr)" />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <p style={{ color: 'var(--text-muted)', textAlign: 'center', paddingTop: '4rem' }}>Need at least 2 holdings and 30 days of history for rolling analysis.</p>
+                    )}
+                </div>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '1rem' }}>
+                    A rising rolling correlation indicates assets are moving together more closely, meaning diversification benefits are decreasing.
+                </p>
+            </div>
+
             {/* Risk Glossary */}
             <div className="glass-panel" style={{ padding: '1.5rem', marginTop: '1.5rem' }}>
-                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: 'var(--text-muted)' }}>📖 What These Mean</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                    <div><strong style={{ color: 'white' }}>Beta:</strong> Measures portfolio sensitivity to S&P 500. β=1 means moves equally with market, β&gt;1 means more volatile, β&lt;1 means less.</div>
-                    <div><strong style={{ color: 'white' }}>Sharpe Ratio:</strong> Return per unit of risk. Higher is better. &gt;2 is excellent, 1-2 is good, &lt;1 is poor.</div>
-                    <div><strong style={{ color: 'white' }}>Max Drawdown:</strong> Largest peak-to-trough decline. Smaller is better. Shows worst-case loss over the past year.</div>
-                    <div><strong style={{ color: 'white' }}>Volatility:</strong> Annualized standard deviation of daily returns. Higher means more price swings.</div>
+                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: 'var(--text-muted)' }}>📖 Risk Intelligence</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                    <div>
+                        <strong style={{ color: 'white', display: 'block', marginBottom: '0.3rem' }}>Beta: {data.beta?.toFixed(2)}</strong>
+                        {data.beta > 1 ? "Portfolio is more volatile than the market. Expect larger swings." : "Portfolio is more stable than the market."}
+                    </div>
+                    <div>
+                        <strong style={{ color: 'white', display: 'block', marginBottom: '0.3rem' }}>Diversification: {data.diversification_score}%</strong>
+                        Your assets have an average correlation of {((100 - data.diversification_score) / 100).toFixed(2)}. {data.diversification_score > 70 ? "Excellent spread." : "Consider adding uncorrelated assets like Gold or Bonds."}
+                    </div>
+                    <div>
+                        <strong style={{ color: 'white', display: 'block', marginBottom: '0.3rem' }}>Max Drawdown: {data.max_drawdown?.toFixed(2)}%</strong>
+                        The worst-case peak-to-trough decline in the past year. Ensure your cash reserves cover this gap.
+                    </div>
                 </div>
             </div>
         </>
@@ -705,6 +749,7 @@ export function Settings() {
 export function SectorHeatmap() {
     const [data, setData] = useState([])
     const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
     const [market, setMarket] = useState('US')
 
     const MARKETS = [
@@ -715,14 +760,22 @@ export function SectorHeatmap() {
 
     useEffect(() => {
         setLoading(true)
-        fetch(`http://127.0.0.1:8000/api/sector/heatmap?market=${market}`)
+        setError(null)
+        fetch(`http://127.0.0.1:8001/api/sector/heatmap?market=${market}`)
             .then(res => res.json())
             .then(d => {
-                setData(d)
+                if (Array.isArray(d)) {
+                    setData(d)
+                } else {
+                    console.error("API did not return an array:", d)
+                    setError("Received invalid data from server.")
+                    setData([])
+                }
                 setLoading(false)
             })
             .catch(err => {
                 console.error("Failed to fetch heatmap data:", err)
+                setError("Failed to communicate with server.")
                 setLoading(false)
             })
     }, [market])
@@ -803,7 +856,13 @@ export function SectorHeatmap() {
                             </tr>
                         </thead>
                         <tbody>
-                            {data.length > 0 && Array.from({ length: data.length }).map((_, rowIndex) => (
+                            {error ? (
+                                <tr>
+                                    <td colSpan={years.length} style={{ padding: '2rem', textAlign: 'center', color: '#ef4444' }}>
+                                        {error}
+                                    </td>
+                                </tr>
+                            ) : Array.isArray(data) && data.length > 0 && Array.from({ length: data.length }).map((_, rowIndex) => (
                                 <tr key={rowIndex}>
                                     {years.map(y => {
                                         let sectorsForYear = data.map(s => ({
@@ -866,7 +925,7 @@ export function SectorHeatmap() {
             <div className="glass-panel" style={{ padding: '2rem', marginTop: '2rem' }}>
                 <h3 style={{ margin: '0 0 1rem 0' }}>Sectors & Color Coding</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
-                    {data.map(sector => (
+                    {(Array.isArray(data) ? data : []).map(sector => (
                         <div key={sector.sector} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <div style={{ width: '16px', height: '16px', borderRadius: '4px', backgroundColor: sector.color }}></div>
                             <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{sector.sector}</span>
@@ -897,7 +956,7 @@ export function SectorIndices() {
         setLoading(true)
         setData([])
         setSectorFilter('All')
-        fetch(`http://127.0.0.1:8000/api/sector/indices?market=${market}`)
+        fetch(`http://127.0.0.1:8001/api/sector/indices?market=${market}`)
             .then(res => res.json())
             .then(d => {
                 setData(d)
@@ -1177,7 +1236,7 @@ export function DebtFunds() {
     useEffect(() => {
         setLoading(true)
         setCategoryFilter('All')
-        fetch(`http://127.0.0.1:8000/api/debt-funds?market=${market}`)
+        fetch(`http://127.0.0.1:8001/api/debt-funds?market=${market}`)
             .then(res => res.json())
             .then(d => {
                 setData(d)
@@ -1385,7 +1444,7 @@ export function MacroDashboard() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        fetch('http://127.0.0.1:8000/api/macro')
+        fetch('http://127.0.0.1:8001/api/macro')
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false) })
             .catch(() => setLoading(false))
@@ -1481,7 +1540,7 @@ export function CommodityTracker() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        fetch('http://127.0.0.1:8000/api/commodities')
+        fetch('http://127.0.0.1:8001/api/commodities')
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false) })
             .catch(() => setLoading(false))
@@ -1549,7 +1608,7 @@ export function ForexMonitor() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        fetch('http://127.0.0.1:8000/api/forex')
+        fetch('http://127.0.0.1:8001/api/forex')
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false) })
             .catch(() => setLoading(false))
@@ -1623,7 +1682,7 @@ export function CorrelationMatrix() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        fetch('http://127.0.0.1:8000/api/correlation')
+        fetch('http://127.0.0.1:8001/api/correlation')
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false) })
             .catch(() => setLoading(false))
@@ -1693,7 +1752,7 @@ export function CorrelationMatrix() {
                                                 border: '1px solid rgba(255,255,255,0.05)',
                                                 minWidth: '45px',
                                             }}>
-                                                {val.toFixed(2)}
+                                                {val != null ? val.toFixed(2) : '—'}
                                             </td>
                                         ))}
                                     </tr>
@@ -1729,7 +1788,7 @@ export function Nifty500Heatmap() {
     const [sortBy, setSortBy] = useState('cagr_5y')
 
     useEffect(() => {
-        fetch('http://127.0.0.1:8000/api/nifty500')
+        fetch('http://127.0.0.1:8001/api/nifty500')
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false) })
             .catch(() => setLoading(false))
@@ -1875,7 +1934,7 @@ function AnalysisPage({ title, subtitle, philosophy, sortKey, sortDesc = true, e
     useEffect(() => {
         setLoading(true)
         setData(null)
-        fetch(`http://127.0.0.1:8000/api/analysis/${region}`)
+        fetch(`http://127.0.0.1:8001/api/analysis/${region}`)
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false) })
             .catch(() => setLoading(false))
@@ -2110,7 +2169,7 @@ export function MarketNews() {
     useEffect(() => {
         setLoading(true)
         setNews([])
-        fetch(`http://127.0.0.1:8000/api/news/${region}`)
+        fetch(`http://127.0.0.1:8001/api/news/${region}`)
             .then(r => r.json())
             .then(d => { setNews(d); setLoading(false) })
             .catch(() => setLoading(false))
@@ -2205,7 +2264,7 @@ export function AllocationAdvisor() {
     const [expandedStrategy, setExpandedStrategy] = useState(null)
 
     useEffect(() => {
-        fetch('http://127.0.0.1:8000/api/allocation')
+        fetch('http://127.0.0.1:8001/api/allocation')
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false) })
             .catch(() => setLoading(false))
@@ -2367,6 +2426,183 @@ export function AllocationAdvisor() {
                         )}
                     </div>
                 ))}
+            </div>
+        </>
+    )
+}
+
+export function BacktestView() {
+    const [data, setData] = useState(null)
+    const [loading, setLoading] = useState(true)
+    const [period, setPeriod] = useState(5)
+    const API = 'http://127.0.0.1:8001'
+
+    useEffect(() => {
+        setLoading(true)
+        fetch(`${API}/api/backtest?period=${period}`)
+            .then(r => r.json())
+            .then(d => { setData(d); setLoading(false) })
+            .catch(() => setLoading(false))
+    }, [period])
+
+    if (loading) return (
+        <>
+            <header><h1>Portfolio Backtest</h1><p className="subtitle">Simulating historical performance...</p></header>
+            <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <Rocket size={48} className="animate-pulse" style={{ color: 'var(--accent-blue)', opacity: 0.5, marginBottom: '1rem' }} />
+                <h2>Running simulation...</h2>
+                <p>fetching historical data for all holdings and compounding SIPs/Lump-sums.</p>
+            </div>
+        </>
+    )
+
+    if (!data || !data.history || data.history.length === 0) return (
+        <>
+            <header><h1>Portfolio Backtest</h1><p className="subtitle">Historical simulation.</p></header>
+            <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center' }}>
+                <AlertTriangle size={48} style={{ color: 'var(--text-muted)', opacity: 0.4, marginBottom: '1rem' }} />
+                <h2 style={{ fontSize: '1.3rem', marginBottom: '0.5rem' }}>No data to backtest</h2>
+                <p style={{ color: 'var(--text-muted)' }}>Add assets in the <a href="/portfolio" style={{ color: 'var(--accent-blue)' }}>Portfolio</a> page to see historical performance.</p>
+            </div>
+        </>
+    )
+
+    return (
+        <>
+            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                    <h1>Portfolio Backtest</h1>
+                    <p className="subtitle">Simulation of current holdings with SIP + Lump-sum contributions.</p>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.3rem', borderRadius: '8px' }}>
+                    {[1, 3, 5, 10].map(p => (
+                        <button
+                            key={p}
+                            onClick={() => setPeriod(p)}
+                            style={{
+                                border: 'none',
+                                background: period === p ? 'var(--accent-blue)' : 'transparent',
+                                color: 'white',
+                                padding: '0.4rem 1rem',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontSize: '0.85rem',
+                                fontWeight: 500
+                            }}
+                        >
+                            {p}Y
+                        </button>
+                    ))}
+                </div>
+            </header>
+
+            {/* Backtest Stats */}
+            <div className="dashboard-grid">
+                <style>{`
+                    .backtest-stat-card {
+                        transition: transform 0.2s;
+                    }
+                    .backtest-stat-card:hover {
+                        transform: translateY(-5px);
+                    }
+                `}</style>
+                <div className="metric-card glass-panel backtest-stat-card" style={{ borderLeft: '4px solid var(--accent-blue)' }}>
+                    <span className="label">Final Portfolio Value</span>
+                    <span className="value">${data.stats.final_value?.toLocaleString()}</span>
+                    <span style={{ color: data.stats.absolute_return >= 0 ? 'var(--profit-green)' : '#ef4444', fontWeight: 600, fontSize: '0.85rem' }}>
+                        {data.stats.absolute_return >= 0 ? '+' : ''}{data.stats.absolute_return}% Abs. Return
+                    </span>
+                </div>
+                <div className="metric-card glass-panel backtest-stat-card" style={{ borderLeft: '4px solid var(--text-muted)' }}>
+                    <span className="label">Benchmark Value (S&P 500)</span>
+                    <span className="value">${data.stats.benchmark_value?.toLocaleString()}</span>
+                    <span style={{ color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem' }}>
+                        {data.stats.benchmark_return >= 0 ? '+' : ''}{data.stats.benchmark_return}% Return
+                    </span>
+                </div>
+                <div className="metric-card glass-panel backtest-stat-card" style={{ borderLeft: `4px solid ${data.stats.outperformance >= 0 ? 'var(--profit-green)' : '#ef4444'}` }}>
+                    <span className="label">Alpha (Outperformance)</span>
+                    <span className="value" style={{ color: data.stats.outperformance >= 0 ? 'var(--profit-green)' : '#ef4444' }}>
+                        {data.stats.outperformance >= 0 ? '+' : ''}{data.stats.outperformance}%
+                    </span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>vs S&P 500 Benchmark</span>
+                </div>
+                <div className="metric-card glass-panel backtest-stat-card" style={{ borderLeft: '4px solid var(--accent-blue)' }}>
+                    <span className="label">Total Capital Invested</span>
+                    <span className="value">${data.stats.total_invested?.toLocaleString()}</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Principal Amount</span>
+                </div>
+            </div>
+
+            {/* Performance Chart */}
+            <div className="glass-panel" style={{ padding: '1.5rem', marginTop: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Equity Curve: Portfolio vs Benchmark</h3>
+                    <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <div style={{ width: '12px', height: '3px', background: 'var(--accent-blue)' }}></div>
+                            <span>Portfolio</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <div style={{ width: '12px', height: '3px', background: 'rgba(255,255,255,0.3)' }}></div>
+                            <span>S&P 500</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style={{ height: '400px', width: '100%' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={data.history}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                            <XAxis
+                                dataKey="date"
+                                stroke="var(--text-muted)"
+                                fontSize={10}
+                                tickFormatter={(str) => {
+                                    const date = new Date(str);
+                                    return date.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
+                                }}
+                            />
+                            <YAxis
+                                stroke="var(--text-muted)"
+                                fontSize={10}
+                                tickFormatter={(val) => `$${(val / 1000).toFixed(0)}k`}
+                            />
+                            <Tooltip
+                                contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid var(--border-glass)', borderRadius: '8px', color: 'white' }}
+                                formatter={(val) => [`$${val.toLocaleString()}`, ""]}
+                                labelStyle={{ color: 'var(--text-muted)', marginBottom: '5px' }}
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="portfolio"
+                                stroke="var(--accent-blue)"
+                                strokeWidth={3}
+                                dot={false}
+                                activeDot={{ r: 6, stroke: 'white', strokeWidth: 2 }}
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="benchmark"
+                                stroke="rgba(255,255,255,0.3)"
+                                strokeWidth={2}
+                                strokeDasharray="5 5"
+                                dot={false}
+                            />
+                        </LineChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+
+            {/* Methodology Note */}
+            <div className="glass-panel" style={{ padding: '1.5rem', marginTop: '1.5rem', borderLeft: '4px solid var(--accent-blue)' }}>
+                <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem', color: 'white' }}>How this simulation works</h3>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>
+                    We take your current portfolio holdings and simulate a reverse time-travel.
+                    We assume the <strong>Lump Sum</strong> amount was invested {period} years ago, and the <strong>Monthly SIP</strong> amount was added every month since then.
+                    Benchmark performance is calculated by investing the same total capital (Lump Sum + SIPs) into the S&P 500 (^GSPC) on the same schedule.
+                    Dividends are not included in this basic capital appreciation model.
+                </p>
             </div>
         </>
     )

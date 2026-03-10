@@ -5,9 +5,9 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import './index.css'
 
 // Import our specific page components
-import { DashboardOverview, Portfolio, RiskAnalysis, Settings, SectorHeatmap, SectorIndices, DebtFunds, MacroDashboard, CommodityTracker, ForexMonitor, CorrelationMatrix, Nifty500Heatmap, MomentumAnalysis, GrowthAnalysis, RiskAdjustedAnalysis, IncomeAnalysis, MarketNews, AllocationAdvisor } from './pages/Views'
+import { DashboardOverview, Portfolio, RiskAnalysis, Settings, SectorHeatmap, SectorIndices, DebtFunds, MacroDashboard, CommodityTracker, ForexMonitor, CorrelationMatrix, Nifty500Heatmap, MomentumAnalysis, GrowthAnalysis, RiskAdjustedAnalysis, IncomeAnalysis, MarketNews, AllocationAdvisor, BacktestView } from './pages/Views'
 
-const API_BASE = "http://127.0.0.1:8000/api"
+const API_BASE = "http://127.0.0.1:8001/api"
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -403,6 +403,9 @@ function App() {
             <NavLink to="/allocation" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
               <PieChart size={20} /> Allocation Advisor
             </NavLink>
+            <NavLink to="/backtest" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+              <Activity size={20} /> Portfolio Backtest
+            </NavLink>
             <NavLink to="/momentum" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
               <Zap size={20} /> Momentum
             </NavLink>
@@ -443,6 +446,7 @@ function App() {
               <Route path="/correlation" element={<CorrelationMatrix />} />
               <Route path="/nifty500" element={<Nifty500Heatmap />} />
               <Route path="/allocation" element={<AllocationAdvisor />} />
+              <Route path="/backtest" element={<BacktestView />} />
               <Route path="/momentum" element={<MomentumAnalysis />} />
               <Route path="/growth" element={<GrowthAnalysis />} />
               <Route path="/risk-adjusted" element={<RiskAdjustedAnalysis />} />
