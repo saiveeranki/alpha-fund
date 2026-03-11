@@ -2063,6 +2063,144 @@ function AnalysisPage({ title, subtitle, philosophy, sortKey, sortDesc = true, e
     )
 }
 
+// ======================== INDIA MUTUAL FUNDS ========================
+export function IndiaMutualFunds() {
+    const [data, setData] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [search, setSearch] = useState('')
+    const [selectedCategory, setSelectedCategory] = useState('All')
+
+    useEffect(() => {
+        fetch('http://127.0.0.1:8001/api/india/mutual-funds')
+            .then(r => r.json())
+            .then(d => { setData(d); setLoading(false) })
+            .catch(() => setLoading(false))
+    }, [])
+
+    const categories = ['All', ...new Set(data.map(item => item.category))]
+    const filtered = data.filter(item => {
+        const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase()) || item.ticker.toLowerCase().includes(search.toLowerCase())
+        const matchesCat = selectedCategory === 'All' || item.category === selectedCategory
+        return matchesSearch && matchesCat
+    })
+
+    const fmtPct = (v) => v != null ? `${v > 0 ? '+' : ''}${v.toFixed(2)}%` : '—'
+    const changeColor = (v) => v > 0 ? 'var(--profit-green)' : v < 0 ? '#ef4444' : 'var(--text-muted)'
+    const fmtAUM = (v) => v ? `₹${(v / 1e7).toFixed(2)} Cr` : '—'
+
+    if (loading) return (
+        <>
+            <header><h1>🇮🇳 India Mutual Funds</h1><p className="subtitle">Comprehensive research on Indian Equity, Debt, G-Secs, and SGBs.</p></header>
+            <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <TrendingUp size={48} className="animate-pulse" style={{ color: 'var(--accent-blue)', opacity: 0.5, marginBottom: '1rem' }} />
+                <h2>Loading master research data...</h2>
+                <p>fetching historical returns and risk metrics for the Indian universe.</p>
+            </div>
+        </>
+    )
+
+    return (
+        <>
+            <header>
+                <h1>🇮🇳 India Mutual Funds</h1>
+                <p className="subtitle">Institutional-grade research dashboard for Indian investors. Track performance, risk, and fundamentals.</p>
+            </header>
+
+            {/* Filters */}
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative', flex: 1, minWidth: '300px' }}>
+                    <input
+                        type="text"
+                        placeholder="Search funds or tickers..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        style={{
+                            width: '100%', padding: '0.8rem 1rem', borderRadius: '10px',
+                            background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)',
+                            color: 'white', fontSize: '0.95rem', outline: 'none'
+                        }}
+                    />
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+                    {categories.map(cat => (
+                        <button key={cat} onClick={() => setSelectedCategory(cat)} style={{
+                            whiteSpace: 'nowrap', padding: '0.6rem 1.2rem', borderRadius: '8px',
+                            background: selectedCategory === cat ? 'var(--accent-blue)' : 'rgba(255,255,255,0.05)',
+                            border: 'none', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem'
+                        }}>{cat}</button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Main Stats Grid */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                {categories.filter(c => c !== 'All' && (selectedCategory === 'All' || selectedCategory === c)).map(category => {
+                    const categoryFunds = filtered.filter(f => f.category === category)
+                    if (categoryFunds.length === 0) return null
+                    
+                    return (
+                        <div key={category} className="glass-panel" style={{ padding: '1.5rem' }}>
+                            <h3 style={{ margin: '0 0 1.2rem 0', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                <span style={{ width: '4px', height: '18px', background: 'var(--accent-blue)', borderRadius: '2px' }}></span>
+                                {category}
+                            </h3>
+                            <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
+                                    <thead>
+                                        <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-glass)' }}>
+                                            <th style={{ padding: '1rem 0.5rem', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase' }}>Fund Name</th>
+                                            <th style={{ padding: '1rem 0.5rem', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase' }}>1Y Return</th>
+                                            <th style={{ padding: '1rem 0.5rem', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase' }}>3Y CAGR</th>
+                                            <th style={{ padding: '1rem 0.5rem', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase' }}>5Y CAGR</th>
+                                            <th style={{ padding: '1rem 0.5rem', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase' }}>Risk (Vol)</th>
+                                            <th style={{ padding: '1rem 0.5rem', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase' }}>AUM</th>
+                                            <th style={{ padding: '1rem 0.5rem', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase' }}>Expense</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {categoryFunds.map(fund => (
+                                            <tr key={fund.ticker} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                                <td style={{ padding: '1.2rem 0.5rem' }}>
+                                                    <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{fund.name}</div>
+                                                    <div style={{ fontSize: '0.72rem', color: 'var(--accent-blue)', marginTop: '0.2rem' }}>{fund.ticker}</div>
+                                                </td>
+                                                <td style={{ padding: '1.2rem 0.5rem', fontWeight: 700, color: changeColor(fund.return_1y) }}>{fmtPct(fund.return_1y)}</td>
+                                                <td style={{ padding: '1.2rem 0.5rem', fontWeight: 600, color: changeColor(fund.return_3y) }}>{fmtPct(fund.return_3y)}</td>
+                                                <td style={{ padding: '1.2rem 0.5rem', fontWeight: 600, color: changeColor(fund.return_5y) }}>{fmtPct(fund.return_5y)}</td>
+                                                <td style={{ padding: '1.2rem 0.5rem' }}>
+                                                    <span style={{
+                                                        padding: '0.2rem 0.6rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600,
+                                                        background: fund.volatility < 12 ? 'rgba(16, 185, 129, 0.15)' : fund.volatility < 20 ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                                                        color: fund.volatility < 12 ? 'var(--profit-green)' : fund.volatility < 20 ? '#fbbf24' : '#ef4444'
+                                                    }}>
+                                                        {fund.volatility ? `${fund.volatility}%` : '—'}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '1.2rem 0.5rem', fontSize: '0.85rem' }}>{fmtAUM(fund.aum)}</td>
+                                                <td style={{ padding: '1.2rem 0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{fund.expense_ratio ? `${fund.expense_ratio}%` : '—'}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )
+                })}
+            </div>
+
+            {/* Research Methodology */}
+            <div className="glass-panel" style={{ padding: '1.5rem', marginTop: '1.5rem', borderLeft: '4px solid var(--accent-blue)' }}>
+                <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem', color: 'white' }}>Why these metrics matter</h3>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>
+                    We provide a multi-dimensional view of Indian Mutual Funds. <strong>1Y, 3Y, and 5Y CAGR</strong> show consistency over different market cycles. 
+                    <strong> Risk (Volatility)</strong> helps you understand the price swings — lower is smoother. <strong>AUM</strong> indicates the size of the fund, 
+                    and <strong>Expense Ratio</strong> tells you how much the fund manager charges (lower is better for your net returns).
+                </p>
+            </div>
+        </>
+    )
+}
+
 // ---------- Page 1: Momentum Leaders ----------
 export function MomentumAnalysis() {
     const explain = (etf) => {

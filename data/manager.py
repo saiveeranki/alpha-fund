@@ -439,6 +439,103 @@ class DataManager:
         
         return results
 
+    def get_india_mutual_funds_data(self) -> list[dict]:
+        """
+        Fetches comprehensive data for Indian Mutual Funds and related assets.
+        Categories: Equity Leaders, Sectoral/Thematic, Fixed Income & Liquid, G-Secs, Gold & SGBs.
+        """
+        import yfinance as yf_mod
+        import numpy as np
+        import pandas as pd
+
+        INDIA_MF_UNIVERSE = [
+            {"category": "Equity Leaders (Large/Mid/Flexi)", "funds": [
+                {"ticker": "NIFTYBEES.NS", "name": "Nippon India ETF Nifty 50 BeES"},
+                {"ticker": "JUNIORBEES.NS", "name": "Nippon India ETF Nifty Next 50"},
+                {"ticker": "M100.NS", "name": "Motilal Oswal Midcap 100 ETF"},
+                {"ticker": "SETFNIF50.NS", "name": "SBI ETF Nifty 50"},
+                {"ticker": "HDFCNIFTY.NS", "name": "HDFC Nifty 50 ETF"},
+            ]},
+            {"category": "Sectoral & Thematic", "funds": [
+                {"ticker": "BANKBEES.NS", "name": "Nippon India ETF Bank BeES"},
+                {"ticker": "ITBEES.NS", "name": "Nippon India ETF IT BeES"},
+                {"ticker": "PHARMABEES.NS", "name": "Nippon India ETF Pharma BeES"},
+                {"ticker": "CPSEETF.NS", "name": "Nippon India ETF CPSE"},
+                {"ticker": "ICICINV20.NS", "name": "ICICI Pru NV20 ETF"},
+                {"ticker": "MON100.NS", "name": "Motilal Oswal Nasdaq 100 ETF"},
+            ]},
+            {"category": "Fixed Income & Liquid Funds", "funds": [
+                {"ticker": "LIQUIDBEES.NS", "name": "Nippon India ETF Liquid BeES"},
+                {"ticker": "ICICILIQ.NS", "name": "ICICI Pru Liquid ETF"},
+                {"ticker": "HDFCLIQUID.NS", "name": "HDFC Liquid ETF"},
+                {"ticker": "EBBETF0430.NS", "name": "BHARAT Bond ETF - April 2030"},
+                {"ticker": "BBETF0432.NS", "name": "BHARAT Bond ETF - April 2032"},
+            ]},
+            {"category": "Government Securities (G-Secs)", "funds": [
+                {"ticker": "GSEC10YEAR.NS", "name": "Mirae Asset Nifty 8-13 yr G-Sec ETF"},
+                {"ticker": "LTGILTBEES.NS", "name": "Nippon India ETF Gilt BeES"},
+                {"ticker": "LICNETFGSC.NS", "name": "LIC MF Nifty 8-13 yr G-Sec ETF"},
+                {"ticker": "SDL26BEES.NS", "name": "Nippon India ETF SDL Apr 2026"},
+            ]},
+            {"category": "Gold & Sovereign Gold Bonds (SGBs)", "funds": [
+                {"ticker": "GOLDBEES.NS", "name": "Nippon India ETF Gold BeES"},
+                {"ticker": "HDFCGOLD.NS", "name": "HDFC Gold ETF"},
+                {"ticker": "SETFGOLD.NS", "name": "SBI ETF Gold"},
+                {"ticker": "GOLDIETF.NS", "name": "ICICI Pru Gold ETF"},
+                {"ticker": "SGBDEC25.NS", "name": "Sovereign Gold Bond Dec 2025"},
+                {"ticker": "SGBMAR28.NS", "name": "Sovereign Gold Bond Mar 2028"},
+            ]},
+        ]
+
+        results = []
+        for cat in INDIA_MF_UNIVERSE:
+            for fund in cat["funds"]:
+                ticker = fund["ticker"]
+                try:
+                    t = yf_mod.Ticker(ticker)
+                    info = t.info or {}
+                    
+                    hist_5y = t.history(period="5y")
+                    hist_3y = t.history(period="3y")
+                    hist_1y = t.history(period="1y")
+
+                    def calc_cagr(hist, years):
+                        if hist is not None and len(hist) > 50:
+                            start = float(hist['Close'].iloc[0])
+                            end = float(hist['Close'].iloc[-1])
+                            if start > 0:
+                                return round(((end / start) ** (1 / years) - 1) * 100, 2)
+                        return None
+
+                    # Volatility (Annualized Standard Deviation)
+                    volatility = None
+                    if hist_1y is not None and len(hist_1y) > 20:
+                        daily_returns = hist_1y['Close'].pct_change().dropna()
+                        volatility = round(float(daily_returns.std() * np.sqrt(252) * 100), 2)
+
+                    results.append({
+                        "ticker": ticker,
+                        "name": fund["name"],
+                        "category": cat["category"],
+                        "last_price": round(float(info.get("previousClose", 0)), 2) if info.get("previousClose") else None,
+                        "yield": round(info.get("yield", 0) * 100, 2) if info.get("yield") else None,
+                        "expense_ratio": round(info.get("annualReportExpenseRatio", 0) * 100, 2) if info.get("annualReportExpenseRatio") else None,
+                        "aum": info.get("totalAssets"),
+                        "return_1y": calc_cagr(hist_1y, 1),
+                        "return_3y": calc_cagr(hist_3y, 3),
+                        "return_5y": calc_cagr(hist_5y, 5),
+                        "volatility": volatility,
+                    })
+                except Exception as e:
+                    print(f"[IndiaMF] Error for {ticker}: {e}")
+                    results.append({
+                        "ticker": ticker, "name": fund["name"], "category": cat["category"],
+                        "return_1y": None, "return_3y": None, "return_5y": None,
+                    })
+
+        return results
+
+
     def get_macro_overview(self) -> dict:
         """Fetches major market indices, VIX, and treasury yields with sparkline data."""
         import yfinance as yf_mod

@@ -187,6 +187,16 @@ async def get_debt_funds(market: str = "US"):
         raise HTTPException(status_code=500, detail="Failed to fetch debt funds data")
     return data
 
+@app.get("/api/india/mutual-funds")
+async def get_india_mutual_funds():
+    """
+    Returns comprehensive data for Indian Mutual Funds and related assets.
+    """
+    data = data_manager.get_india_mutual_funds_data()
+    if not data:
+        raise HTTPException(status_code=500, detail="Failed to fetch India Mutual Funds data")
+    return data
+
 @app.get("/api/macro")
 async def get_macro():
     """Returns major market indices, VIX, treasury yields with sparkline data."""

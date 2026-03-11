@@ -5,7 +5,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import './index.css'
 
 // Import our specific page components
-import { DashboardOverview, Portfolio, RiskAnalysis, Settings, SectorHeatmap, SectorIndices, DebtFunds, MacroDashboard, CommodityTracker, ForexMonitor, CorrelationMatrix, Nifty500Heatmap, MomentumAnalysis, GrowthAnalysis, RiskAdjustedAnalysis, IncomeAnalysis, MarketNews, AllocationAdvisor, BacktestView } from './pages/Views'
+import { DashboardOverview, Portfolio, RiskAnalysis, Settings, SectorHeatmap, SectorIndices, DebtFunds, MacroDashboard, CommodityTracker, ForexMonitor, CorrelationMatrix, Nifty500Heatmap, MomentumAnalysis, GrowthAnalysis, RiskAdjustedAnalysis, IncomeAnalysis, MarketNews, AllocationAdvisor, BacktestView, IndiaMutualFunds } from './pages/Views'
 
 const API_BASE = "http://127.0.0.1:8001/api"
 
@@ -398,6 +398,9 @@ function App() {
             <NavLink to="/nifty500" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
               <IndianRupee size={20} /> Nifty 500
             </NavLink>
+            <NavLink to="/india-funds" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+              <TrendingUp size={20} /> India Mutual Funds
+            </NavLink>
 
             <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '1rem 1.2rem 0.3rem', marginTop: '0.5rem' }}>Analysis</div>
             <NavLink to="/allocation" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
@@ -445,6 +448,7 @@ function App() {
               <Route path="/forex" element={<ForexMonitor />} />
               <Route path="/correlation" element={<CorrelationMatrix />} />
               <Route path="/nifty500" element={<Nifty500Heatmap />} />
+              <Route path="/india-funds" element={<IndiaMutualFunds />} />
               <Route path="/allocation" element={<AllocationAdvisor />} />
               <Route path="/backtest" element={<BacktestView />} />
               <Route path="/momentum" element={<MomentumAnalysis />} />
