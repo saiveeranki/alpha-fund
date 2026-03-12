@@ -525,6 +525,7 @@ class DataManager:
                         "return_3y": calc_cagr(hist_3y, 3),
                         "return_5y": calc_cagr(hist_5y, 5),
                         "volatility": volatility,
+                        "sparkline": [round(float(s), 2) for s in hist_1y['Close'].tail(20).tolist()] if hist_1y is not None and not hist_1y.empty else [],
                     })
                 except Exception as e:
                     print(f"[IndiaMF] Error for {ticker}: {e}")
@@ -1468,6 +1469,21 @@ class DataManager:
 
                 allocation_map[cat] = allocation_map.get(cat, 0) + invested
 
+                # Get long-term metrics for scatter plot
+                volatility = None
+                ret_1y = None
+                try:
+                    hist_1y = t.history(period="1y")
+                    if not hist_1y.empty:
+                        daily_ret = hist_1y['Close'].pct_change().dropna()
+                        volatility = round(float(daily_ret.std() * np.sqrt(252) * 100), 2)
+                        s = float(hist_1y['Close'].iloc[0])
+                        e = float(hist_1y['Close'].iloc[-1])
+                        if s > 0:
+                            ret_1y = round((e - s) / s * 100, 2)
+                except:
+                    pass
+
                 currency = info.get("currency", h.currency or "USD")
                 performers.append({
                     "ticker": h.ticker,
@@ -1476,6 +1492,8 @@ class DataManager:
                     "currency": currency,
                     "day_change": day_change_pct,
                     "invested": invested,
+                    "volatility": volatility,
+                    "return_1y": ret_1y
                 })
             except Exception as e:
                 print(f"[Dashboard] Error for {h.ticker}: {e}")
@@ -1500,6 +1518,23 @@ class DataManager:
             allocation.append({"category": cat, "value": val, "percent": pct})
         allocation.sort(key=lambda x: x["percent"], reverse=True)
 
+        # Weighted expense ratio
+        weighted_expense = 0
+        valid_expense_weight = 0
+        for p in performers:
+            # We need to fetch expense ratio if not already in performers (it's not saved in DB)
+            # For efficiency, we can just use the ones we found or assume 0 for stocks
+            try:
+                t = yf_mod.Ticker(p["ticker"])
+                exp = t.info.get("annualReportExpenseRatio", 0) or 0
+                weight = p["invested"] / total_invested if total_invested > 0 else 0
+                weighted_expense += exp * weight
+            except:
+                pass
+
+        # Get Health Score
+        health = self.get_portfolio_health()
+
         return {
             "total_value": round(total_invested, 2),
             "daily_pnl": daily_pnl_abs,
@@ -1509,6 +1544,42 @@ class DataManager:
             "worst_performers": worst_3,
             "allocation": allocation,
             "market_pulse": self._get_market_pulse(),
+            "health_score": health["overall_score"],
+            "health_metrics": health,
+            "weighted_expense_ratio": round(weighted_expense * 100, 3)
+        }
+
+    def get_portfolio_health(self) -> dict:
+        """
+        Computes a comprehensive Portfolio Health Score (0-100).
+        Based on Diversification, Sharpe Ratio (Risk-Adj Returns), and Drawdown.
+        """
+        risk = self.get_risk_analysis()
+        
+        # 1. Diversification (30%)
+        div_score = risk.get("diversification_score", 0)
+        
+        # 2. Sharpe Ratio (30%) - Normalized (0.0=0, 2.0=100)
+        sharpe = risk.get("sharpe_ratio", 0) or 0
+        sharpe_score = max(0, min(100, (sharpe / 2.0) * 100))
+        
+        # 3. Drawdown (20%) - Normalized (0%=100, 30%=0)
+        drawdown = abs(risk.get("max_drawdown", 0) or 0)
+        drawdown_score = max(0, min(100, 100 - (drawdown / 30.0) * 100))
+        
+        # 4. Volatility (20%) - Normalized (5%=100, 25%=0)
+        vol = risk.get("volatility", 0) or 15
+        vol_score = max(0, min(100, 100 - ((vol - 5) / 20.0) * 100))
+        
+        overall = round((div_score * 0.3) + (sharpe_score * 0.3) + (drawdown_score * 0.2) + (vol_score * 0.2), 0)
+        
+        return {
+            "overall_score": overall,
+            "diversification": div_score,
+            "risk_adjusted": round(sharpe_score, 0),
+            "protection": round(drawdown_score, 0),
+            "stability": round(vol_score, 0),
+            "status": "Excellent" if overall >= 80 else "Good" if overall >= 60 else "Fair" if overall >= 40 else "Poor"
         }
 
     def _get_market_pulse(self) -> list:

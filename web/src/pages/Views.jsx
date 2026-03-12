@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { LayoutDashboard, TrendingUp, AlertTriangle, PlayCircle, Grid } from 'lucide-react'
-import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, BarChart, Bar } from 'recharts'
+import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, BarChart, Bar, ScatterChart, Scatter } from 'recharts'
 
 // Mock Data
 export const magicFormulaData = [
@@ -11,52 +11,125 @@ export const magicFormulaData = [
     { rank: 5, ticker: 'MC.PA', name: 'LVMH (Paris)', ey: '6.05%', roc: '15.99%', eyRank: 6, rocRank: 9, sector: 'Consumer Cyclical' },
 ]
 
-// SVG Donut Chart component (no Recharts dependency)
-function SvgDonut({ data, size = 200, innerRadius = 60, outerRadius = 90 }) {
-    if (!data || data.length === 0) return null
-    const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#6b7280', '#ec4899', '#14b8a6']
-    const total = data.reduce((s, d) => s + d.percent, 0) || 1
-    const cx = size / 2, cy = size / 2
-    let startAngle = -90
-    const paths = data.map((d, i) => {
-        const angle = (d.percent / total) * 360
-        const endAngle = startAngle + angle
-        const largeArc = angle > 180 ? 1 : 0
-        const rad1 = (startAngle * Math.PI) / 180
-        const rad2 = (endAngle * Math.PI) / 180
-        const x1o = cx + outerRadius * Math.cos(rad1)
-        const y1o = cy + outerRadius * Math.sin(rad1)
-        const x2o = cx + outerRadius * Math.cos(rad2)
-        const y2o = cy + outerRadius * Math.sin(rad2)
-        const x1i = cx + innerRadius * Math.cos(rad2)
-        const y1i = cy + innerRadius * Math.sin(rad2)
-        const x2i = cx + innerRadius * Math.cos(rad1)
-        const y2i = cy + innerRadius * Math.sin(rad1)
-        const path = [
-            `M ${x1o} ${y1o}`,
-            `A ${outerRadius} ${outerRadius} 0 ${largeArc} 1 ${x2o} ${y2o}`,
-            `L ${x1i} ${y1i}`,
-            `A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${x2i} ${y2i}`,
-            'Z'
-        ].join(' ')
-        startAngle = endAngle
-        return <path key={i} d={path} fill={COLORS[i % COLORS.length]} opacity={0.85}
-            style={{ transition: 'opacity 0.2s' }}
-            onMouseEnter={e => e.currentTarget.style.opacity = 1}
-            onMouseLeave={e => e.currentTarget.style.opacity = 0.85} />
-    })
+// SVG Sparkline component
+export function Sparkline({ data, color = '#3b82f6', width = 100, height = 30 }) {
+    if (!data || data.length < 2) return <div style={{ width, height }} />
+    const min = Math.min(...data)
+    const max = Math.max(...data)
+    const range = max - min || 1
+    const points = data.map((d, i) => {
+        const x = (i / (data.length - 1)) * width
+        const y = height - ((d - min) / range) * height
+        return `${x},${y}`
+    }).join(' ')
+
     return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-            <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>{paths}</svg>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                {data.map((d, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
-                        <div style={{ width: 10, height: 10, borderRadius: 3, background: COLORS[i % COLORS.length] }} />
-                        <span style={{ color: 'var(--text-muted)' }}>{d.category || d.sector}</span>
-                        <span style={{ fontWeight: 700 }}>{d.percent}%</span>
-                    </div>
+        <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
+            <polyline
+                fill="none"
+                stroke={color}
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                points={points}
+            />
+        </svg>
+    )
+}
+
+// Health Gauge Component
+function HealthGauge({ score, metrics }) {
+    const size = 180
+    const strokeWidth = 12
+    const radius = (size - strokeWidth) / 2
+    const circumference = 2 * Math.PI * radius
+    const offset = circumference - (score / 100) * circumference
+    
+    const getColor = (s) => s >= 80 ? 'var(--profit-green)' : s >= 60 ? '#f59e0b' : '#ef4444'
+    const color = getColor(score)
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ position: 'relative', width: size, height: size }}>
+                <svg width={size} height={size}>
+                    <circle
+                        cx={size / 2} cy={size / 2} r={radius}
+                        fill="none"
+                        stroke="rgba(255,255,255,0.05)"
+                        strokeWidth={strokeWidth}
+                    />
+                    <circle
+                        cx={size / 2} cy={size / 2} r={radius}
+                        fill="none"
+                        stroke={color}
+                        strokeWidth={strokeWidth}
+                        strokeDasharray={circumference}
+                        strokeDashoffset={offset}
+                        strokeLinecap="round"
+                        style={{ transition: 'stroke-dashoffset 1s ease-out', transform: 'rotate(-90deg)', transformOrigin: '50% 50%' }}
+                    />
+                </svg>
+                <div style={{
+                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                    display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center'
+                }}>
+                    <span style={{ fontSize: '2.5rem', fontWeight: 800, color }}>{score}</span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Score</span>
+                </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem', width: '100%' }}>
+                {metrics && Object.entries(metrics).map(([key, val]) => (
+                    key !== 'overall_score' && key !== 'status' && (
+                        <div key={key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '0.5rem', borderRadius: '10px' }}>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>{key}</span>
+                            <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{val}%</span>
+                        </div>
+                    )
                 ))}
             </div>
+        </div>
+    )
+}
+
+// Risk/Reward Scatter Plot component
+function RiskRewardScatter({ data }) {
+    if (!data || data.length === 0) return null
+    const scatterData = data.map(d => ({
+        name: d.ticker,
+        x: d.volatility || 0,
+        y: d.return_1y || 0,
+    })).filter(d => d.x > 0 || d.y !== 0)
+
+    if (scatterData.length === 0) return (
+        <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+            No volatility data available for scatter plot.
+        </div>
+    )
+
+    return (
+        <div style={{ padding: '0.5rem' }}>
+            <div style={{ height: '300px', width: '100%' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                    <ScatterChart margin={{ top: 20, right: 30, bottom: 20, left: 10 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                        <XAxis type="number" dataKey="x" name="Risk" unit="%" stroke="var(--text-muted)" fontSize={12} label={{ value: 'Volatility %', position: 'bottom', fill: 'var(--text-muted)', fontSize: 10 }} />
+                        <YAxis type="number" dataKey="y" name="Reward" unit="%" stroke="var(--text-muted)" fontSize={12} label={{ value: 'Return %', angle: -90, position: 'left', fill: 'var(--text-muted)', fontSize: 10 }} />
+                        <Tooltip 
+                            cursor={{ strokeDasharray: '3 3' }} 
+                            contentStyle={{ background: '#121621', border: '1px solid var(--border-glass)', borderRadius: '12px', color: 'white' }}
+                            itemStyle={{ color: 'var(--accent-blue)' }}
+                        />
+                        <Scatter name="Holdings" data={scatterData} fill="var(--accent-blue)">
+                            {scatterData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.y >= 0 ? 'var(--profit-green)' : '#ef4444'} opacity={0.7} />
+                            ))}
+                        </Scatter>
+                    </ScatterChart>
+                </ResponsiveContainer>
+            </div>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem', textAlign: 'center' }}>
+                Mapping 1Y Return vs Volatility. Top-left is high-efficiency zone.
+            </p>
         </div>
     )
 }
@@ -140,6 +213,11 @@ export function DashboardOverview() {
                         <span style={{ color: 'var(--profit-green)', fontWeight: 600 }}>{fmtPct(data.top_performers[0].day_change)}</span>
                     </div>
                 )}
+                <div className="metric-card glass-panel" style={{ borderLeft: '4px solid #8b5cf6' }}>
+                    <span className="label">Weighted Expense</span>
+                    <span className="value">{data.weighted_expense_ratio ? (data.weighted_expense_ratio).toFixed(3) + '%' : '0.00%'}</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Portfolio Average</span>
+                </div>
                 {data.worst_performers?.[0] && (
                     <div className="metric-card glass-panel" style={{ borderLeft: '4px solid #ef4444' }}>
                         <span className="label">📉 Worst Today</span>
@@ -149,49 +227,71 @@ export function DashboardOverview() {
                 )}
             </div>
 
-            {/* Middle Row: Allocation Donut + Performers */}
+            {/* Middle Row 1: Health Gauge + Risk/Reward */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 2fr', gap: '1.5rem', marginTop: '1.5rem' }}>
+                {/* Health Gauge */}
+                <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', width: '100%' }}>Portfolio Health</h3>
+                    <HealthGauge score={data.health_score} metrics={data.health_metrics} />
+                </div>
+
+                {/* Risk/Reward Scatter */}
+                <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                    <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem' }}>Risk vs Reward Profile</h3>
+                    <RiskRewardScatter data={data.performers} />
+                </div>
+            </div>
+
+            {/* Middle Row 2: Allocation + Movers */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1.5rem' }}>
                 {/* Allocation Donut */}
                 <div className="glass-panel" style={{ padding: '1.5rem' }}>
-                    <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem' }}>Asset Allocation</h3>
+                    <h3 style={{ margin: '0 0 1.2rem 0', fontSize: '1rem' }}>Asset Allocation</h3>
                     {data.allocation && data.allocation.length > 0 ? (
-                        <SvgDonut data={data.allocation} />
+                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                            <SvgDonut data={data.allocation} />
+                        </div>
                     ) : (
                         <p style={{ color: 'var(--text-muted)' }}>Set investment amounts in Portfolio to see allocation.</p>
                     )}
                 </div>
 
-                {/* Top & Worst Performers */}
+                {/* Movers */}
                 <div className="glass-panel" style={{ padding: '1.5rem' }}>
                     <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem' }}>Today's Movers</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                        {(data.top_performers || []).map((p, i) => (
-                            <div key={p.ticker} style={{
-                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                padding: '0.6rem 0.8rem', borderRadius: '8px',
-                                background: 'rgba(16, 185, 129, 0.06)', borderLeft: '3px solid var(--profit-green)',
-                            }}>
-                                <div>
-                                    <span style={{ fontWeight: 600, marginRight: '0.5rem' }}>{p.ticker}</span>
-                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{p.name}</span>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--profit-green)', fontWeight: 700, textTransform: 'uppercase' }}>Top Gainers</span>
+                            {(data.top_performers || []).slice(0, 3).map((p, i) => (
+                                <div key={p.ticker} style={{
+                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                    padding: '0.6rem 0.8rem', borderRadius: '12px',
+                                    background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.1)',
+                                }}>
+                                    <div>
+                                        <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{p.ticker}</div>
+                                        <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>{p.name}</div>
+                                    </div>
+                                    <span style={{ color: 'var(--profit-green)', fontWeight: 800 }}>+{p.day_change}%</span>
                                 </div>
-                                <span style={{ color: 'var(--profit-green)', fontWeight: 700 }}>{fmtPct(p.day_change)}</span>
-                            </div>
-                        ))}
-                        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', margin: '0.3rem 0' }} />
-                        {(data.worst_performers || []).map((p, i) => (
-                            <div key={p.ticker} style={{
-                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                padding: '0.6rem 0.8rem', borderRadius: '8px',
-                                background: 'rgba(239, 68, 68, 0.06)', borderLeft: '3px solid #ef4444',
-                            }}>
-                                <div>
-                                    <span style={{ fontWeight: 600, marginRight: '0.5rem' }}>{p.ticker}</span>
-                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{p.name}</span>
+                            ))}
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                            <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 700, textTransform: 'uppercase' }}>Top Decliners</span>
+                            {(data.worst_performers || []).slice(0, 3).map((p, i) => (
+                                <div key={p.ticker} style={{
+                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                    padding: '0.6rem 0.8rem', borderRadius: '12px',
+                                    background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.1)',
+                                }}>
+                                    <div>
+                                        <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{p.ticker}</div>
+                                        <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>{p.name}</div>
+                                    </div>
+                                    <span style={{ color: '#ef4444', fontWeight: 800 }}>{p.day_change}%</span>
                                 </div>
-                                <span style={{ color: '#ef4444', fontWeight: 700 }}>{fmtPct(p.day_change)}</span>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2065,10 +2165,7 @@ function AnalysisPage({ title, subtitle, philosophy, sortKey, sortDesc = true, e
 
 // ======================== INDIA MUTUAL FUNDS ========================
 export function IndiaMutualFunds() {
-    const [data, setData] = useState([])
-    const [loading, setLoading] = useState(true)
-    const [search, setSearch] = useState('')
-    const [selectedCategory, setSelectedCategory] = useState('All')
+    const [compareList, setCompareList] = useState([])
 
     useEffect(() => {
         fetch('http://127.0.0.1:8001/api/india/mutual-funds')
@@ -2076,6 +2173,14 @@ export function IndiaMutualFunds() {
             .then(d => { setData(d); setLoading(false) })
             .catch(() => setLoading(false))
     }, [])
+
+    const toggleCompare = (f) => {
+        if (compareList.find(c => c.ticker === f.ticker)) {
+            setCompareList(compareList.filter(c => c.ticker !== f.ticker))
+        } else if (compareList.length < 3) {
+            setCompareList([...compareList, f])
+        }
+    }
 
     const categories = ['All', ...new Set(data.map(item => item.category))]
     const filtered = data.filter(item => {
@@ -2148,7 +2253,9 @@ export function IndiaMutualFunds() {
                                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
                                     <thead>
                                         <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-glass)' }}>
+                                            <th style={{ padding: '1rem 0.5rem', width: '40px' }}></th>
                                             <th style={{ padding: '1rem 0.5rem', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase' }}>Fund Name</th>
+                                            <th style={{ padding: '1rem 0.5rem', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase' }}>Trend (30D)</th>
                                             <th style={{ padding: '1rem 0.5rem', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase' }}>1Y Return</th>
                                             <th style={{ padding: '1rem 0.5rem', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase' }}>3Y CAGR</th>
                                             <th style={{ padding: '1rem 0.5rem', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase' }}>5Y CAGR</th>
@@ -2161,8 +2268,19 @@ export function IndiaMutualFunds() {
                                         {categoryFunds.map(fund => (
                                             <tr key={fund.ticker} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
                                                 <td style={{ padding: '1.2rem 0.5rem' }}>
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={compareList.some(c => c.ticker === fund.ticker)}
+                                                        onChange={() => toggleCompare(fund)}
+                                                        style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: 'var(--accent-blue)' }}
+                                                    />
+                                                </td>
+                                                <td style={{ padding: '1.2rem 0.5rem' }}>
                                                     <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{fund.name}</div>
                                                     <div style={{ fontSize: '0.72rem', color: 'var(--accent-blue)', marginTop: '0.2rem' }}>{fund.ticker}</div>
+                                                </td>
+                                                <td style={{ padding: '1.2rem 0.5rem' }}>
+                                                    <Sparkline data={fund.sparkline} color={fund.return_1y >= 0 ? 'var(--profit-green)' : '#ef4444'} width={80} height={24} />
                                                 </td>
                                                 <td style={{ padding: '1.2rem 0.5rem', fontWeight: 700, color: changeColor(fund.return_1y) }}>{fmtPct(fund.return_1y)}</td>
                                                 <td style={{ padding: '1.2rem 0.5rem', fontWeight: 600, color: changeColor(fund.return_3y) }}>{fmtPct(fund.return_3y)}</td>
@@ -2187,6 +2305,45 @@ export function IndiaMutualFunds() {
                     )
                 })}
             </div>
+
+            {/* Comparison Tool Overlay */}
+            {compareList.length > 0 && (
+                <div style={{
+                    position: 'fixed', bottom: '2rem', right: '4rem', zIndex: 1000,
+                    width: '380px', background: '#121621', border: '1px solid var(--border-glass)',
+                    borderRadius: '20px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+                    padding: '1.5rem', backdropFilter: 'blur(20px)',
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem' }}>
+                        <h3 style={{ margin: 0, fontSize: '1rem' }}>Fund Comparison ({compareList.length}/3)</h3>
+                        <button onClick={() => setCompareList([])} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>Clear</button>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                        {compareList.map(f => (
+                            <div key={f.ticker} style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-glass)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                    <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{f.name}</span>
+                                    <span style={{ color: 'var(--accent-blue)', fontSize: '0.75rem' }}>{f.ticker}</span>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
+                                    <div style={{ textAlign: 'center' }}>
+                                        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>1Y Ret</div>
+                                        <div style={{ fontWeight: 700, color: changeColor(f.return_1y) }}>{fmtPct(f.return_1y)}</div>
+                                    </div>
+                                    <div style={{ textAlign: 'center' }}>
+                                        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Risk</div>
+                                        <div style={{ fontWeight: 700 }}>{f.volatility}%</div>
+                                    </div>
+                                    <div style={{ textAlign: 'center' }}>
+                                        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Exp.</div>
+                                        <div style={{ fontWeight: 700 }}>{f.expense_ratio}%</div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Research Methodology */}
             <div className="glass-panel" style={{ padding: '1.5rem', marginTop: '1.5rem', borderLeft: '4px solid var(--accent-blue)' }}>
