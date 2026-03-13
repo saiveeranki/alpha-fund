@@ -253,6 +253,29 @@ Data is cached locally in a **SQLite database** (`data/market_cache.db`) to mini
 
 ---
 
+## 🧪 Testing
+
+Alpha Fund includes a comprehensive automated testing suite.
+
+1. **Backend Tests (Pytest)**
+   ```bash
+   # Run from the root directory
+   python -m pytest tests/
+   ```
+
+2. **Frontend Tests (Vitest & React Testing Library)**
+   ```bash
+   # Run from the web directory
+   cd web
+   npm test
+   ```
+
+3. **CI/CD**
+   - The project uses GitHub Actions for continuous integration.
+   - Tests are automatically run on every push and pull request to the `master` branch.
+
+---
+
 ## 🧮 The Magic Formula
 
 This platform implements Joel Greenblatt's **Magic Formula** from *"The Little Book That Beats the Market"*:
