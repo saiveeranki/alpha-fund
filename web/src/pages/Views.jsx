@@ -2937,3 +2937,176 @@ export function BacktestView() {
         </>
     )
 }
+
+export function LegendaryPortfolios() {
+    const [data, setData] = useState(null)
+    const [loading, setLoading] = useState(true)
+    const [activeRegion, setActiveRegion] = useState('USA') // USA, Europe, India
+
+    useEffect(() => {
+        setLoading(true)
+        fetch('http://localhost:8001/api/legendary')
+            .then(res => res.json())
+            .then(d => {
+                setData(d)
+                setLoading(false)
+            })
+            .catch(err => {
+                console.error("Failed to fetch legendary portfolios:", err)
+                setLoading(false)
+            })
+    }, [])
+
+    if (loading) return (
+        <>
+            <header><h1>Legendary Portfolios</h1><p className="subtitle">Loading strategies...</p></header>
+            <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <h3>Gathering investor allocations...</h3>
+            </div>
+        </>
+    )
+
+    if (!data) return (
+        <>
+            <header><h1>Legendary Portfolios</h1><p className="subtitle">Global Investment Strategies</p></header>
+            <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <h3>Failed to load portfolio data. Make sure backend is running.</h3>
+            </div>
+        </>
+    )
+
+    const regions = Object.keys(data)
+    const portfolios = data[activeRegion] || []
+    
+    // Using predefined colors for the pie charts
+    const pieColors = ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#f43f5e']
+
+    return (
+        <>
+            <header>
+                <h1>👑 Legendary Portfolios</h1>
+                <p className="subtitle">Replicate the exact asset allocations of the world's greatest investors.</p>
+            </header>
+
+            {/* Region Tabs */}
+            <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border-glass)', paddingBottom: '1rem', marginBottom: '2rem' }}>
+                {regions.map(r => (
+                    <button 
+                        key={r}
+                        onClick={() => setActiveRegion(r)}
+                        className={`tab-button ${activeRegion === r ? 'active' : ''}`}
+                        style={{
+                            background: activeRegion === r ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
+                            border: activeRegion === r ? '1px solid var(--accent-blue)' : '1px solid transparent',
+                            color: activeRegion === r ? 'white' : 'var(--text-muted)',
+                            padding: '0.5rem 1.5rem',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            fontSize: '1rem',
+                            fontWeight: activeRegion === r ? 600 : 400,
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        {r === 'USA' ? '🇺🇸 USA' : r === 'Europe' ? '🇪🇺 Europe' : '🇮🇳 India'}
+                    </button>
+                ))}
+            </div>
+
+            {/* Portfolios Grid */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '2rem' }}>
+                {portfolios.map((pf, idx) => {
+                    // Prepare data for Recharts PieChart
+                    const chartData = pf.allocation.map(item => ({
+                        name: item.asset,
+                        value: item.weight,
+                        ticker: item.ticker
+                    }))
+
+                    return (
+                        <div key={idx} className="glass-panel" style={{ padding: '2rem' }}>
+                            <div style={{ paddingBottom: '1.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-glass)' }}>
+                                <h2 style={{ fontSize: '1.4rem', marginBottom: '0.5rem', color: 'var(--accent-blue)' }}>{pf.name}</h2>
+                                <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: 0, lineHeight: '1.5' }}>{pf.description}</p>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 2fr', gap: '2rem', alignItems: 'center' }}>
+                                {/* Allocation Chart */}
+                                <div style={{ height: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie 
+                                                data={chartData} 
+                                                cx="50%" 
+                                                cy="45%" 
+                                                innerRadius={60} 
+                                                outerRadius={100} 
+                                                dataKey="value"
+                                                stroke="rgba(255,255,255,0.05)"
+                                                paddingAngle={2}
+                                                isAnimationActive={false}
+                                            >
+                                                {chartData.map((entry, i) => (
+                                                    <Cell key={`cell-${i}`} fill={pieColors[i % pieColors.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip 
+                                                formatter={(value) => `${value}%`}
+                                                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }} 
+                                                itemStyle={{ color: '#fff' }}
+                                            />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
+
+                                {/* Allocation Table */}
+                                <div className="data-table-container">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Asset Class</th>
+                                                <th>Target Weight</th>
+                                                <th>Ticker (ETF/Fund)</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {pf.allocation.map((item, i) => (
+                                                <tr key={i}>
+                                                    <td>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                            <div style={{ width: 10, height: 10, borderRadius: '50%', background: pieColors[i % pieColors.length] }}></div>
+                                                            <span style={{ fontWeight: 600 }}>{item.asset}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td style={{ fontWeight: 700, color: 'var(--text-light)' }}>{item.weight}%</td>
+                                                    <td><span className="rank-badge">{item.ticker}</span></td>
+                                                    <td>
+                                                        <a 
+                                                            href={`https://finance.yahoo.com/quote/${item.ticker}`} 
+                                                            target="_blank" 
+                                                            rel="noreferrer"
+                                                            style={{ 
+                                                                color: 'var(--accent-blue)', 
+                                                                textDecoration: 'none', 
+                                                                fontSize: '0.85rem',
+                                                                background: 'rgba(59, 130, 246, 0.1)',
+                                                                padding: '0.3rem 0.6rem',
+                                                                borderRadius: '4px'
+                                                            }}
+                                                        >
+                                                            Research
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                })}
+            </div>
+        </>
+    )
+}

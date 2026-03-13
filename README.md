@@ -93,6 +93,13 @@ Comprehensive analytics on top-performing India mutual funds across Equity, Debt
 
 ---
 
+### Legendary Portfolios Explorer
+Replicate the exact asset allocations of the world's greatest investors. Features a tabbed interface (USA, Europe, India) detailing the strategies and specific ETF/Mutual Fund weightings for Warren Buffett, Ray Dalio (All Weather), Terry Smith, Coffee Can, and more.
+
+![Legendary Portfolios](docs/screenshots/legendary_portfolios.png)
+
+---
+
 ### Allocation Advisor — Strategies from the Masters
 Compares your portfolio allocation against strategies from **Ray Dalio (All Weather), Warren Buffett (90/10), Harry Browne (Permanent), David Swensen (Yale), and more**. Shows recommended average allocation weighted across these legendary approaches.
 

@@ -1934,3 +1934,102 @@ class DataManager:
         except Exception as e:
             print(f"[get_ticker_detail] Error for {ticker}: {e}")
             return None
+
+    def get_legendary_portfolios(self) -> dict:
+        """Returns deep-researched portfolio allocations of legendary investors."""
+        return {
+            "USA": [
+                {
+                    "name": "Warren Buffett (90/10)",
+                    "description": "Buffett's famously simple portfolio plan for his wife's inheritance. It relies on the long-term compounding of the American economy.",
+                    "allocation": [
+                        {"asset": "US Large Cap Equity", "ticker": "VOO", "weight": 90},
+                        {"asset": "Short-Term US Treasuries", "ticker": "VGSH", "weight": 10}
+                    ]
+                },
+                {
+                    "name": "Ray Dalio (All Weather)",
+                    "description": "Designed to survive any economic environment (inflation, deflation, growth, recession) by balancing risk across asset classes.",
+                    "allocation": [
+                        {"asset": "US Total Stock Market", "ticker": "VTI", "weight": 30},
+                        {"asset": "Long-Term Treasuries", "ticker": "TLT", "weight": 40},
+                        {"asset": "Intermediate Treasuries", "ticker": "IEI", "weight": 15},
+                        {"asset": "Gold", "ticker": "GLD", "weight": 7.5},
+                        {"asset": "Broad Commodities", "ticker": "GSG", "weight": 7.5}
+                    ]
+                },
+                {
+                    "name": "David Swensen (Yale Model)",
+                    "description": "The 'Lazy Portfolio' version of the Yale Endowment approach, heavily diversified across asset classes, including real estate.",
+                    "allocation": [
+                        {"asset": "US Total Stock Market", "ticker": "VTI", "weight": 30},
+                        {"asset": "Real Estate (REITs)", "ticker": "VNQ", "weight": 20},
+                        {"asset": "Intl Developed Stocks", "ticker": "VEU", "weight": 15},
+                        {"asset": "Emerging Markets", "ticker": "VWO", "weight": 5},
+                        {"asset": "Intermediate Treasuries", "ticker": "VGIT", "weight": 15},
+                        {"asset": "TIPS (Inflation Protected)", "ticker": "VTIP", "weight": 15}
+                    ]
+                },
+                {
+                    "name": "John Bogle (Three-Fund)",
+                    "description": "The classic Bogleheads strategy prioritizing maximal diversification and minimal management fees.",
+                    "allocation": [
+                        {"asset": "US Total Stock Market", "ticker": "VTI", "weight": 60},
+                        {"asset": "Intl Total Stock Market", "ticker": "VXUS", "weight": 20},
+                        {"asset": "Total US Bond Market", "ticker": "BND", "weight": 20}
+                    ]
+                }
+            ],
+            "Europe": [
+                {
+                    "name": "Terry Smith (Fundsmith Style)",
+                    "description": "The 'English Warren Buffett'. Focuses on a concentrated portfolio of high-quality, resilient global businesses.",
+                    "allocation": [
+                        {"asset": "Global Quality Consumer Staples", "ticker": "KXI", "weight": 35},
+                        {"asset": "Global Healthcare Equipment", "ticker": "IXJ", "weight": 30},
+                        {"asset": "Global Tech (High ROCE)", "ticker": "IXN", "weight": 25},
+                        {"asset": "Cash / Equivalents", "ticker": "BIL", "weight": 10}
+                    ]
+                },
+                {
+                    "name": "Permanent Portfolio (EU Variant)",
+                    "description": "Harry Browne's strategy adjusted for the Eurozone, balancing growth and hedging against macro shocks.",
+                    "allocation": [
+                        {"asset": "European Equities", "ticker": "VGK", "weight": 25},
+                        {"asset": "Long-Term Euro Bonds", "ticker": "IBZL.L", "weight": 25},
+                        {"asset": "Cash (Euro Short-Term)", "ticker": "XEON.DE", "weight": 25},
+                        {"asset": "Physical Gold", "ticker": "SGLN.L", "weight": 25}
+                    ]
+                }
+            ],
+            "India": [
+                {
+                    "name": "Coffee Can Portfolio (Saurabh Mukherjea)",
+                    "description": "A 'buy and forget' approach targeting businesses with 10+ years of >15% revenue growth and >15% ROCE.",
+                    "allocation": [
+                        {"asset": "High-Quality Consumption", "ticker": "ASIANPAINT.NS", "weight": 30},
+                        {"asset": "Private Financials", "ticker": "HDFCBANK.NS", "weight": 25},
+                        {"asset": "Resilient Tech Services", "ticker": "TCS.NS", "weight": 20},
+                        {"asset": "Oligopoly Niche Players", "ticker": "PIDILITIND.NS", "weight": 25}
+                    ]
+                },
+                {
+                    "name": "Rakesh Jhunjhunwala (Big Bull Style)",
+                    "description": "Long-term concentrated bets on India's structural growth story, strong management, and turnaround candidates.",
+                    "allocation": [
+                        {"asset": "Consumer & Retail (Titan)", "ticker": "TITAN.NS", "weight": 40},
+                        {"asset": "Pharma & Healthcare", "ticker": "LUPIN.NS", "weight": 20},
+                        {"asset": "Financial Services", "ticker": "CRISIL.NS", "weight": 20},
+                        {"asset": "Auto & Infra", "ticker": "TATAMOTORS.NS", "weight": 20}
+                    ]
+                },
+                {
+                    "name": "Nifty 50 Equal Weight",
+                    "description": "A balanced indexing approach to capturing India's top 50 companies without over-concentration in top-heavy stocks.",
+                    "allocation": [
+                        {"asset": "Nifty 50 Equal Weight ETF", "ticker": "NIFTY50EQUAL.NS", "weight": 100}
+                    ]
+                }
+            ]
+        }
+

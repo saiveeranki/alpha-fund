@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom'
-import { LayoutDashboard, TrendingUp, BarChart3, Settings as SettingsIcon, Briefcase, Activity, ChevronDown, ChevronUp, Loader, Grid, List, DollarSign, Globe, Package, ArrowLeftRight, Grid3X3, IndianRupee, Zap, Rocket, Shield, Wallet, Newspaper, PieChart } from 'lucide-react'
+import { LayoutDashboard, TrendingUp, BarChart3, Settings as SettingsIcon, Briefcase, Activity, ChevronDown, ChevronUp, Loader, Grid, List, DollarSign, Globe, Package, ArrowLeftRight, Grid3X3, IndianRupee, Zap, Rocket, Shield, Wallet, Newspaper, PieChart, Crown } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import './index.css'
 
 // Import our specific page components
-import { DashboardOverview, Portfolio, RiskAnalysis, Settings, SectorHeatmap, SectorIndices, DebtFunds, MacroDashboard, CommodityTracker, ForexMonitor, CorrelationMatrix, Nifty500Heatmap, MomentumAnalysis, GrowthAnalysis, RiskAdjustedAnalysis, IncomeAnalysis, MarketNews, AllocationAdvisor, BacktestView, IndiaMutualFunds } from './pages/Views'
+import { DashboardOverview, Portfolio, RiskAnalysis, Settings, SectorHeatmap, SectorIndices, DebtFunds, MacroDashboard, CommodityTracker, ForexMonitor, CorrelationMatrix, Nifty500Heatmap, MomentumAnalysis, GrowthAnalysis, RiskAdjustedAnalysis, IncomeAnalysis, MarketNews, AllocationAdvisor, BacktestView, IndiaMutualFunds, LegendaryPortfolios } from './pages/Views'
 
 const API_BASE = "http://localhost:8001/api"
 
@@ -406,6 +406,9 @@ function App() {
             <NavLink to="/allocation" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
               <PieChart size={20} /> Allocation Advisor
             </NavLink>
+            <NavLink to="/legendary" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+              <Crown size={20} /> Legendary Portfolios
+            </NavLink>
             <NavLink to="/backtest" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
               <Activity size={20} /> Portfolio Backtest
             </NavLink>
@@ -450,6 +453,7 @@ function App() {
               <Route path="/nifty500" element={<Nifty500Heatmap />} />
               <Route path="/india-funds" element={<IndiaMutualFunds />} />
               <Route path="/allocation" element={<AllocationAdvisor />} />
+              <Route path="/legendary" element={<LegendaryPortfolios />} />
               <Route path="/backtest" element={<BacktestView />} />
               <Route path="/momentum" element={<MomentumAnalysis />} />
               <Route path="/growth" element={<GrowthAnalysis />} />

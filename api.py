@@ -247,6 +247,11 @@ async def get_allocation():
     """Returns allocation advice and portfolio comparison."""
     return data_manager.get_allocation_advice()
 
+@app.get("/api/legendary")
+async def get_legendary_portfolios():
+    """Returns static allocations for legendary investors across regions."""
+    return data_manager.get_legendary_portfolios()
+
 @app.get("/api/backtest")
 async def get_backtest(period: int = 5):
     """Returns historical portfolio backtest results."""
