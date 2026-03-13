@@ -37,6 +37,13 @@ Add tickers from a searchable registry, **set lump-sum and monthly SIP amounts**
 
 ---
 
+### India Mutual Funds Explorer
+Comprehensive analytics on top-performing India mutual funds across Equity, Debt, and Hybrid categories. Includes 30-day NAV sparkline trends, expense ratios, and an interactive 3-fund comparison tool.
+
+![India Mutual Funds Explorer](docs/screenshots/india_mutual_funds.png)
+
+---
+
 ### Risk & Exposure Analysis
 Computes portfolio-level risk metrics: **Beta vs S&P 500, Sharpe Ratio (1Y), Max Drawdown, and Annualized Volatility**. Includes sector exposure donut chart and a holdings correlation mini-matrix.
 
