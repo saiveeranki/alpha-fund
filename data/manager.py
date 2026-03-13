@@ -1250,6 +1250,8 @@ class DataManager:
             # --- US Broad Market ---
             {"ticker": "SPY", "name": "SPDR S&P 500 ETF", "category": "ETF", "sector": "Broad Market", "market": "US", "exchange": "NYSE"},
             {"ticker": "VOO", "name": "Vanguard S&P 500 ETF", "category": "ETF", "sector": "Broad Market", "market": "US", "exchange": "NYSE"},
+            {"ticker": "ACWI", "name": "iShares MSCI ACWI ETF", "category": "ETF", "sector": "Global Equity", "market": "Global", "exchange": "NASDAQ"},
+            {"ticker": "VT", "name": "Vanguard Total World Stock ETF", "category": "ETF", "sector": "Global Equity", "market": "Global", "exchange": "NYSE"},
             {"ticker": "QQQ", "name": "Invesco QQQ Trust (NASDAQ 100)", "category": "ETF", "sector": "Broad Market", "market": "US", "exchange": "NASDAQ"},
             {"ticker": "VTI", "name": "Vanguard Total Stock Market", "category": "ETF", "sector": "Broad Market", "market": "US", "exchange": "NYSE"},
             {"ticker": "IWM", "name": "iShares Russell 2000 (Small Cap)", "category": "ETF", "sector": "Small Cap", "market": "US", "exchange": "NYSE"},

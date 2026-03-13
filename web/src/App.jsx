@@ -7,7 +7,7 @@ import './index.css'
 // Import our specific page components
 import { DashboardOverview, Portfolio, RiskAnalysis, Settings, SectorHeatmap, SectorIndices, DebtFunds, MacroDashboard, CommodityTracker, ForexMonitor, CorrelationMatrix, Nifty500Heatmap, MomentumAnalysis, GrowthAnalysis, RiskAdjustedAnalysis, IncomeAnalysis, MarketNews, AllocationAdvisor, BacktestView, IndiaMutualFunds } from './pages/Views'
 
-const API_BASE = "http://127.0.0.1:8001/api"
+const API_BASE = "http://localhost:8001/api"
 
 class ErrorBoundary extends React.Component {
   constructor(props) {

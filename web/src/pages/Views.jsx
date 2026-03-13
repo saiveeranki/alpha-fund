@@ -36,6 +36,52 @@ export function Sparkline({ data, color = '#3b82f6', width = 100, height = 30 })
         </svg>
     )
 }
+// SVG Donut Component for allocations
+function SvgDonut({ data }) {
+    if (!data || data.length === 0) return null
+    const size = 160
+    const strokeWidth = 22
+    const radius = (size - strokeWidth) / 2
+    const center = size / 2
+    const circumference = 2 * Math.PI * radius
+    let accumulatedPercent = 0
+
+    const COLORS = ['var(--accent-blue)', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981']
+
+    const paths = data.map((d, i) => {
+        const strokeDasharray = `${(d.percent / 100) * circumference} ${circumference}`
+        const strokeDashoffset = -(accumulatedPercent / 100) * circumference
+        accumulatedPercent += d.percent
+
+        return (
+            <circle
+                key={i}
+                cx={center} cy={center} r={radius}
+                fill="none"
+                stroke={COLORS[i % COLORS.length]}
+                strokeWidth={strokeWidth}
+                strokeDasharray={strokeDasharray}
+                strokeDashoffset={strokeDashoffset}
+                strokeLinecap="butt"
+                style={{ transition: 'stroke-dashoffset 0.5s ease' }}
+            />
+        )
+    })
+    return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+            <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>{paths}</svg>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                {data.map((d, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
+                        <div style={{ width: 10, height: 10, borderRadius: 3, background: COLORS[i % COLORS.length] }} />
+                        <span style={{ color: 'var(--text-muted)' }}>{d.category || d.sector}</span>
+                        <span style={{ fontWeight: 700 }}>{d.percent}%</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}
 
 // Health Gauge Component
 function HealthGauge({ score, metrics }) {
@@ -137,7 +183,7 @@ function RiskRewardScatter({ data }) {
 export function DashboardOverview() {
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
-    const API = 'http://127.0.0.1:8001'
+    const API = 'http://localhost:8001'
 
     useEffect(() => {
         fetch(`${API}/api/dashboard`)
@@ -326,7 +372,7 @@ export function Portfolio() {
     const [detailLoading, setDetailLoading] = useState(false)
     const [editingTicker, setEditingTicker] = useState(null)
 
-    const API = 'http://127.0.0.1:8001'
+    const API = 'http://localhost:8001'
 
     const loadPortfolio = () => {
         setLoading(true)
@@ -643,7 +689,7 @@ export function Portfolio() {
 export function RiskAnalysis() {
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
-    const API = 'http://127.0.0.1:8001'
+    const API = 'http://localhost:8001'
 
     useEffect(() => {
         fetch(`${API}/api/risk-analysis`)
@@ -861,7 +907,7 @@ export function SectorHeatmap() {
     useEffect(() => {
         setLoading(true)
         setError(null)
-        fetch(`http://127.0.0.1:8001/api/sector/heatmap?market=${market}`)
+        fetch(`http://localhost:8001/api/sector/heatmap?market=${market}`)
             .then(res => res.json())
             .then(d => {
                 if (Array.isArray(d)) {
@@ -1056,7 +1102,7 @@ export function SectorIndices() {
         setLoading(true)
         setData([])
         setSectorFilter('All')
-        fetch(`http://127.0.0.1:8001/api/sector/indices?market=${market}`)
+        fetch(`http://localhost:8001/api/sector/indices?market=${market}`)
             .then(res => res.json())
             .then(d => {
                 setData(d)
@@ -1336,7 +1382,7 @@ export function DebtFunds() {
     useEffect(() => {
         setLoading(true)
         setCategoryFilter('All')
-        fetch(`http://127.0.0.1:8001/api/debt-funds?market=${market}`)
+        fetch(`http://localhost:8001/api/debt-funds?market=${market}`)
             .then(res => res.json())
             .then(d => {
                 setData(d)
@@ -1523,28 +1569,13 @@ export function DebtFunds() {
     )
 }
 
-// ─── Mini SVG Sparkline ──────────────────────────────────────────
-function Sparkline({ data, color = '#3b82f6', width = 120, height = 32 }) {
-    if (!data || data.length < 2) return null
-    const min = Math.min(...data), max = Math.max(...data)
-    const range = max - min || 1
-    const points = data.map((v, i) =>
-        `${(i / (data.length - 1)) * width},${height - ((v - min) / range) * height}`
-    ).join(' ')
-    return (
-        <svg width={width} height={height} style={{ display: 'block' }}>
-            <polyline fill="none" stroke={color} strokeWidth="1.5" points={points} />
-        </svg>
-    )
-}
-
 // ─── 1. MACRO DASHBOARD ─────────────────────────────────────────
 export function MacroDashboard() {
     const [data, setData] = useState({ indices: [], gauges: [] })
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        fetch('http://127.0.0.1:8001/api/macro')
+        fetch('http://localhost:8001/api/macro')
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false) })
             .catch(() => setLoading(false))
@@ -1640,7 +1671,7 @@ export function CommodityTracker() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        fetch('http://127.0.0.1:8001/api/commodities')
+        fetch('http://localhost:8001/api/commodities')
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false) })
             .catch(() => setLoading(false))
@@ -1708,7 +1739,7 @@ export function ForexMonitor() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        fetch('http://127.0.0.1:8001/api/forex')
+        fetch('http://localhost:8001/api/forex')
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false) })
             .catch(() => setLoading(false))
@@ -1782,7 +1813,7 @@ export function CorrelationMatrix() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        fetch('http://127.0.0.1:8001/api/correlation')
+        fetch('http://localhost:8001/api/correlation')
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false) })
             .catch(() => setLoading(false))
@@ -1888,7 +1919,7 @@ export function Nifty500Heatmap() {
     const [sortBy, setSortBy] = useState('cagr_5y')
 
     useEffect(() => {
-        fetch('http://127.0.0.1:8001/api/nifty500')
+        fetch('http://localhost:8001/api/nifty500')
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false) })
             .catch(() => setLoading(false))
@@ -2034,7 +2065,7 @@ function AnalysisPage({ title, subtitle, philosophy, sortKey, sortDesc = true, e
     useEffect(() => {
         setLoading(true)
         setData(null)
-        fetch(`http://127.0.0.1:8001/api/analysis/${region}`)
+        fetch(`http://localhost:8001/api/analysis/${region}`)
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false) })
             .catch(() => setLoading(false))
@@ -2165,10 +2196,14 @@ function AnalysisPage({ title, subtitle, philosophy, sortKey, sortDesc = true, e
 
 // ======================== INDIA MUTUAL FUNDS ========================
 export function IndiaMutualFunds() {
+    const [data, setData] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [search, setSearch] = useState('')
+    const [selectedCategory, setSelectedCategory] = useState('All')
     const [compareList, setCompareList] = useState([])
 
     useEffect(() => {
-        fetch('http://127.0.0.1:8001/api/india/mutual-funds')
+        fetch('http://localhost:8001/api/india/mutual-funds')
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false) })
             .catch(() => setLoading(false))
@@ -2464,7 +2499,7 @@ export function MarketNews() {
     useEffect(() => {
         setLoading(true)
         setNews([])
-        fetch(`http://127.0.0.1:8001/api/news/${region}`)
+        fetch(`http://localhost:8001/api/news/${region}`)
             .then(r => r.json())
             .then(d => { setNews(d); setLoading(false) })
             .catch(() => setLoading(false))
@@ -2559,7 +2594,7 @@ export function AllocationAdvisor() {
     const [expandedStrategy, setExpandedStrategy] = useState(null)
 
     useEffect(() => {
-        fetch('http://127.0.0.1:8001/api/allocation')
+        fetch('http://localhost:8001/api/allocation')
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false) })
             .catch(() => setLoading(false))
@@ -2730,7 +2765,7 @@ export function BacktestView() {
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
     const [period, setPeriod] = useState(5)
-    const API = 'http://127.0.0.1:8001'
+    const API = 'http://localhost:8001'
 
     useEffect(() => {
         setLoading(true)

@@ -205,44 +205,51 @@ Data is cached locally in a **SQLite database** (`data/market_cache.db`) to mini
 
 ---
 
-## 🚀 Getting Started
+### 💻 Platform-Specific Setup
 
-### Prerequisites
+#### **Windows**
+1. **Install Dependencies:**
+   ```powershell
+   # Install Python requirements
+   pip install fastapi uvicorn yfinance pandas sqlalchemy pydantic
 
-- **Python 3.10+**
-- **Node.js 16+** and **npm**
-- Internet connection (for Yahoo Finance data)
+   # Install Frontend requirements
+   cd web
+   npm install
+   cd ..
+   ```
+2. **Launch Application:**
+   * **Terminal 1 (Backend):** `python api.py`
+   * **Terminal 2 (Frontend):** `cd web; npm run dev`
 
-### Installation
+#### **macOS / Linux**
+1. **Install Dependencies:**
+   ```bash
+   # Install Python requirements
+   pip3 install fastapi uvicorn yfinance pandas sqlalchemy pydantic
 
-```bash
-# 1. Clone the repository
-git clone https://github.com/yourusername/alpha-fund.git
-cd alpha-fund
+   # Install Frontend requirements
+   cd web
+   npm install
+   cd ..
+   ```
+2. **Launch Application:**
+   * **Terminal 1 (Backend):** `python3 api.py`
+   * **Terminal 2 (Frontend):** `cd web && npm run dev`
 
-# 2. Install Python dependencies
-pip install fastapi uvicorn yfinance pandas sqlalchemy pydantic
+### 🏗️ Running the Application
 
-# 3. Install frontend dependencies
-cd web
-npm install
-cd ..
-```
+1. **Start the Backend:**
+   Run `python api.py`. The server will initialize the local performance cache and start listening on `http://localhost:8001`.
+   
+2. **Start the Frontend:**
+   Navigate to the `web` directory and run `npm run dev`. The dashboard will be available at `http://localhost:3000` (or `3001` if port 3000 is occupied).
 
-### Running the Application
+3. **Standard Access:**
+   Open your browser and navigate to **http://localhost:3001** (or the port indicated by the Vite console).
 
-```bash
-# Terminal 1: Start the backend
-python api.py
-# Server starts at http://localhost:8000
-
-# Terminal 2: Start the frontend
-cd web
-npm run dev
-# Frontend starts at http://localhost:3000
-```
-
-Open **http://localhost:3000** in your browser to access the dashboard.
+> [!NOTE]
+> On the first run, the backend will seed the ticker registry. Subsequent starts are instantaneous. If you encounter CORS issues, ensure you are accessing the app via `localhost` rather than `127.0.0.1`.
 
 ---
 
