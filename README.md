@@ -16,13 +16,6 @@
 
 ## 📸 Screenshots
 
-### Global Asset Screener — Magic Formula Rankings
-Screens 40+ stocks and ETFs across **US, Europe, India, and Other markets** using Greenblatt's value investing formula. Assets are grouped by region and ranked by a combined score of Earnings Yield and Return on Capital.
-
-![Global Asset Screener](docs/screenshots/screener.png)
-
----
-
 ### Executive Dashboard — Portfolio Overview
 Live portfolio dashboard showing **total invested value, daily P&L, best/worst performers**, asset allocation breakdown with SVG donut chart, and real-time Market Pulse (S&P 500, NASDAQ, VIX, Dow Jones).
 
@@ -37,17 +30,10 @@ Add tickers from a searchable registry, **set lump-sum and monthly SIP amounts**
 
 ---
 
-### India Mutual Funds Explorer
-Comprehensive analytics on top-performing India mutual funds across Equity, Debt, and Hybrid categories. Includes 30-day NAV sparkline trends, expense ratios, and an interactive 3-fund comparison tool.
+### Global Asset Screener — Magic Formula Rankings
+Screens 40+ stocks and ETFs across **US, Europe, India, and Other markets** using Greenblatt's value investing formula. Assets are grouped by region and ranked by a combined score of Earnings Yield and Return on Capital.
 
-![India Mutual Funds Explorer](docs/screenshots/india_mutual_funds.png)
-
----
-
-### Risk & Exposure Analysis
-Computes portfolio-level risk metrics: **Beta vs S&P 500, Sharpe Ratio (1Y), Max Drawdown, and Annualized Volatility**. Includes sector exposure donut chart and a holdings correlation mini-matrix.
-
-![Risk Analysis](docs/screenshots/risk_analysis.png)
+![Global Asset Screener](docs/screenshots/screener.png)
 
 ---
 
@@ -86,10 +72,24 @@ Tracks **8 major currency pairs** (EUR/USD, GBP/USD, USD/JPY, USD/INR, etc.) wit
 
 ---
 
+### Risk & Exposure Analysis
+Computes portfolio-level risk metrics: **Beta vs S&P 500, Sharpe Ratio (1Y), Max Drawdown, and Annualized Volatility**. Includes sector exposure donut chart and a holdings correlation mini-matrix.
+
+![Risk Analysis](docs/screenshots/risk_analysis.png)
+
+---
+
 ### Cross-Asset Correlation Matrix
 Computes and visualizes the **correlation matrix** across equities, bonds, commodities, and currencies using 1-year daily returns. Color-coded from red (−1) through neutral (0) to green (+1).
 
 ![Correlation Matrix](docs/screenshots/correlation.png)
+
+---
+
+### India Mutual Funds Explorer
+Comprehensive analytics on top-performing India mutual funds across Equity, Debt, and Hybrid categories. Includes 30-day NAV sparkline trends, expense ratios, and an interactive 3-fund comparison tool.
+
+![India Mutual Funds Explorer](docs/screenshots/india_mutual_funds.png)
 
 ---
 
