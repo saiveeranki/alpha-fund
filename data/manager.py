@@ -2051,6 +2051,28 @@ class DataManager:
                     cagr = ((e / s) ** (1 / years)) - 1
                     cagr_5y = round(cagr * 100, 2)
             
+            # Volatility (Annualized Standard Deviation of 1Y daily returns)
+            volatility = 0
+            try:
+                if not hist_1y.empty and len(hist_1y) > 20:
+                    daily_returns = hist_1y['Close'].pct_change().dropna()
+                    if not daily_returns.empty:
+                        import numpy as np
+                        volatility = round(float(daily_returns.std() * np.sqrt(252) * 100), 2)
+            except: pass
+                
+            # Max Drawdown (5Y)
+            max_drawdown = 0
+            try:
+                if not hist_5y.empty and len(hist_5y) > 20:
+                    # Use closing prices directly for cumulative return to be more stable
+                    prices = hist_5y['Close'].dropna()
+                    if not prices.empty:
+                        peak = prices.cummax()
+                        dd = (prices - peak) / peak
+                        max_drawdown = round(float(dd.min() * 100), 2)
+            except: pass
+
             chart_data = []
             if not hist_5y.empty:
                 # Downsample to ~1 data point per week to save payload size
@@ -2061,13 +2083,27 @@ class DataManager:
                         "price": round(float(row['Close']), 2)
                     })
             
+            # Standardize Dividend Yield (avoiding the 266% bug)
+            raw_yield = info.get("dividendYield", info.get("yield", 0)) or 0
+            # If yield is > 1.0 (e.g. 2.66), assume it's already a percentage
+            # If yield is < 1.0 (e.g. 0.0266), it's a decimal
+            # This is a heuristic because some high yield assets exist, but > 100% is impossible for standard stocks
+            if raw_yield > 1.0:
+                standard_yield = raw_yield / 100.0
+            else:
+                standard_yield = raw_yield
+
             return {
+                "ticker": ticker,
+                "name": info.get("longName", info.get("shortName", ticker)),
                 "return_1m": ret_1m,
                 "return_1y": ret_1y,
                 "cagr_5y": cagr_5y,
+                "volatility": volatility,
+                "max_drawdown": abs(max_drawdown),
                 "beta": info.get("beta"),
                 "expense_ratio": info.get("expense_ratio", info.get("fund_expense_ratio")),
-                "dividend_yield": info.get("dividendYield", info.get("yield")),
+                "dividend_yield": standard_yield,
                 "chart": chart_data
             }
         except Exception as e:

@@ -1,6 +1,189 @@
 import React, { useState, useEffect } from 'react'
 import { LayoutDashboard, TrendingUp, AlertTriangle, PlayCircle, Grid, Rocket, Zap, Shield, Wallet, Newspaper, PieChart as PieChartIcon, Activity, Crown, IndianRupee, Globe, Package, ArrowLeftRight, Grid3X3, List, DollarSign } from 'lucide-react'
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, BarChart, Bar, ScatterChart, Scatter } from 'recharts'
+import { X } from 'lucide-react'
+
+const API_BASE = "http://localhost:8001/api"
+
+// --- Global Context for Ticker Details ---
+export const TickerDetailContext = React.createContext()
+
+export const TickerDetailProvider = ({ children }) => {
+    const [activeTicker, setActiveTicker] = useState(null)
+    const [isOpen, setIsOpen] = useState(false)
+
+    const openTicker = (ticker) => {
+        setActiveTicker(ticker)
+        setIsOpen(true)
+    }
+
+    const closeTicker = () => {
+        setIsOpen(false)
+        setActiveTicker(null)
+    }
+
+    return (
+        <TickerDetailContext.Provider value={{ activeTicker, isOpen, openTicker, closeTicker }}>
+            {children}
+            <TickerDetailModal />
+        </TickerDetailContext.Provider>
+    )
+}
+
+export const useTickerDetail = () => React.useContext(TickerDetailContext)
+
+function TickerDetailModal() {
+    const { activeTicker, isOpen, closeTicker } = useTickerDetail()
+    const [data, setData] = useState(null)
+    const [loading, setLoading] = useState(false)
+
+    useEffect(() => {
+        if (activeTicker && isOpen) {
+            setLoading(true)
+            fetch(`${API_BASE}/ticker/${activeTicker}/detail`)
+                .then(res => res.json())
+                .then(d => {
+                    setData(d)
+                    setLoading(false)
+                })
+                .catch(err => {
+                    console.error("Detail fetch error:", err)
+                    setLoading(false)
+                })
+        }
+    }, [activeTicker, isOpen])
+
+    if (!isOpen) return null
+
+    return (
+        <div style={{
+            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+            background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
+            display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999,
+            padding: '2rem'
+        }} onClick={closeTicker}>
+            <div style={{
+                width: '100%', maxWidth: '1000px', background: 'var(--panel-glass)',
+                borderRadius: '20px', border: '1px solid var(--border-glass)',
+                padding: '2.5rem', position: 'relative', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+                maxHeight: '90vh', overflowY: 'auto'
+            }} onClick={e => e.stopPropagation()}>
+                
+                <button 
+                    onClick={closeTicker}
+                    style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                >
+                    <X size={24} />
+                </button>
+
+                {loading ? (
+                    <div style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div className="loader" />
+                    </div>
+                ) : data ? (
+                    <>
+                        <header style={{ marginBottom: '2rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.3rem' }}>
+                                <h2 style={{ fontSize: '2.5rem', margin: 0, fontWeight: 800, color: 'white' }}>{data.ticker}</h2>
+                                <span style={{ 
+                                    background: 'var(--accent-blue)', padding: '0.3rem 0.8rem', borderRadius: '6px', fontSize: '0.9rem', fontWeight: 600 
+                                }}>{data.cagr_5y}% 5Y CAGR</span>
+                            </div>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', margin: 0 }}>{data.name || 'Institutional Asset View'}</p>
+                        </header>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '2.5rem' }}>
+                            {/* Growth Curve */}
+                            <div>
+                                <h3 style={{ fontSize: '1rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1.5rem' }}>5-Year Growth Curve</h3>
+                                <div style={{ height: '350px', background: 'rgba(255,255,255,0.02)', borderRadius: '15px', padding: '1rem' }}>
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <AreaChart data={data.chart}>
+                                            <defs>
+                                                <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="var(--accent-blue)" stopOpacity={0.3}/>
+                                                    <stop offset="95%" stopColor="var(--accent-blue)" stopOpacity={0}/>
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                            <XAxis 
+                                                dataKey="date" 
+                                                axisLine={false} 
+                                                tickLine={false} 
+                                                tick={{ fill: 'var(--text-muted)', fontSize: 10 }} 
+                                            />
+                                            <YAxis 
+                                                axisLine={false} 
+                                                tickLine={false} 
+                                                tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
+                                                domain={['auto', 'auto']}
+                                            />
+                                            <Tooltip 
+                                                contentStyle={{ background: '#1a1a2e', border: '1px solid var(--border-glass)', borderRadius: '10px' }}
+                                                itemStyle={{ color: 'var(--accent-blue)' }}
+                                            />
+                                            <Area 
+                                                type="monotone" 
+                                                dataKey="price" 
+                                                stroke="var(--accent-blue)" 
+                                                strokeWidth={3}
+                                                fillOpacity={1} 
+                                                fill="url(#colorPrice)" 
+                                            />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+
+                            {/* Volatility & Metrics */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                <h3 style={{ fontSize: '1rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.5rem' }}>Volatility Stats</h3>
+                                
+                                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.2rem', borderRadius: '15px', border: '1px solid var(--border-glass)' }}>
+                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Annualized Volatility</div>
+                                    <div style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--profit-green)' }}>{data.volatility}%</div>
+                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>Measure of price variance over the last 1 year.</p>
+                                </div>
+
+                                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.2rem', borderRadius: '15px', border: '1px solid var(--border-glass)' }}>
+                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Max Drawdown (5Y)</div>
+                                    <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#ef4444' }}>{data.max_drawdown}%</div>
+                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>Most significant peak-to-trough decline.</p>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '10px', textAlign: 'center' }}>
+                                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Beta</div>
+                                        <div style={{ fontWeight: 600 }}>{data.beta || 'N/A'}</div>
+                                    </div>
+                                    <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '10px', textAlign: 'center' }}>
+                                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Div Yield</div>
+                                        <div style={{ fontWeight: 600 }}>{(data.dividend_yield * 100).toFixed(2)}%</div>
+                                    </div>
+                                </div>
+
+                                <div style={{ marginTop: 'auto', textAlign: 'center' }}>
+                                    <button 
+                                        style={{ 
+                                            width: '100%', padding: '1rem', borderRadius: '10px', 
+                                            background: 'var(--accent-blue)', color: 'white', fontWeight: 700,
+                                            border: 'none', cursor: 'pointer'
+                                        }}
+                                        onClick={closeTicker}
+                                    >
+                                        Back to Terminal
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                ) : (
+                    <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Could not load ticker details.</div>
+                )}
+            </div>
+        </div>
+    )
+}
 
 // Mock Data
 export const magicFormulaData = [
@@ -571,8 +754,11 @@ export function Portfolio() {
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', cursor: 'pointer' }}
                                 onClick={() => loadDetail(h.ticker)}>
                                 <div style={{ flex: 1 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '0.5rem' }}>
-                                        <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>{h.name}</span>
+                                    <div 
+                                        style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '0.5rem', cursor: 'pointer' }}
+                                        onClick={(e) => { e.stopPropagation(); openTicker(h.ticker); }}
+                                    >
+                                        <span style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--accent-blue)', textDecoration: 'underline' }}>{h.name}</span>
                                         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{h.ticker}</span>
                                     </div>
                                     <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'baseline', flexWrap: 'wrap' }}>
@@ -1112,6 +1298,7 @@ export function SectorHeatmap() {
 export function SectorIndices() {
     const [data, setData] = useState([])
     const [loading, setLoading] = useState(true)
+    const { openTicker } = useTickerDetail()
     const [sectorFilter, setSectorFilter] = useState('All')
     const [market, setMarket] = useState('US')
 
@@ -1327,14 +1514,19 @@ export function SectorIndices() {
                                                 <span style={{ fontWeight: 500, color: 'white', fontSize: '0.95rem' }}>{provider}</span>
                                             </td>
                                             <td>
-                                                <span style={{
-                                                    fontSize: '0.85rem',
-                                                    color: 'var(--accent-blue)',
-                                                    fontWeight: 600,
-                                                    background: 'rgba(59, 130, 246, 0.1)',
-                                                    padding: '0.2rem 0.6rem',
-                                                    borderRadius: '6px',
-                                                }}>{row.ticker}</span>
+                                                <span 
+                                                    style={{
+                                                        fontSize: '0.85rem',
+                                                        color: 'var(--accent-blue)',
+                                                        fontWeight: 600,
+                                                        background: 'rgba(59, 130, 246, 0.1)',
+                                                        padding: '0.2rem 0.6rem',
+                                                        borderRadius: '6px',
+                                                        cursor: 'pointer',
+                                                        textDecoration: 'underline'
+                                                    }}
+                                                    onClick={() => openTicker(row.ticker)}
+                                                >{row.ticker}</span>
                                             </td>
 
                                             <td style={{
@@ -1397,6 +1589,7 @@ export function SectorIndices() {
 export function DebtFunds() {
     const [data, setData] = useState([])
     const [loading, setLoading] = useState(true)
+    const { openTicker } = useTickerDetail()
     const [market, setMarket] = useState('US')
     const [categoryFilter, setCategoryFilter] = useState('All')
 
@@ -1571,8 +1764,11 @@ export function DebtFunds() {
                                         <tr key={item.ticker}>
                                             <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{idx}</td>
                                             <td>
-                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                                    <span style={{ fontWeight: 600, color: 'white' }}>{item.ticker}</span>
+                                                <div 
+                                                    style={{ display: 'flex', flexDirection: 'column', cursor: 'pointer' }}
+                                                    onClick={() => openTicker(item.ticker)}
+                                                >
+                                                    <span style={{ fontWeight: 600, color: 'var(--accent-blue)', textDecoration: 'underline' }}>{item.ticker}</span>
                                                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.name}</span>
                                                 </div>
                                             </td>
@@ -1604,6 +1800,7 @@ export function DebtFunds() {
 export function MacroDashboard() {
     const [data, setData] = useState({ indices: [], gauges: [] })
     const [loading, setLoading] = useState(true)
+    const { openTicker } = useTickerDetail()
 
     useEffect(() => {
         fetch('http://localhost:8001/api/macro')
@@ -1663,8 +1860,8 @@ export function MacroDashboard() {
                                     {regionIndices.map(idx => (
                                         <div key={idx.ticker} className="glass-panel" style={{ padding: '1.2rem' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <div>
-                                                    <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>{idx.name}</div>
+                                                <div style={{ cursor: 'pointer' }} onClick={() => openTicker(idx.ticker)}>
+                                                    <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--accent-blue)', textDecoration: 'underline' }}>{idx.name}</div>
                                                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginTop: '0.3rem' }}>
                                                         <span style={{ fontSize: '1.3rem', fontWeight: 600 }}>{idx.price.toLocaleString()}</span>
                                                         <span style={{ color: changeColor(idx.change_pct), fontWeight: 600 }}>
@@ -1776,6 +1973,7 @@ export function CommodityTracker() {
 export function ForexMonitor() {
     const [data, setData] = useState([])
     const [loading, setLoading] = useState(true)
+    const { openTicker } = useTickerDetail()
 
     useEffect(() => {
         fetch('http://localhost:8001/api/forex')
@@ -1819,8 +2017,8 @@ export function ForexMonitor() {
                             <tbody>
                                 {data.map(p => (
                                     <tr key={p.ticker}>
-                                        <td>
-                                            <div style={{ fontWeight: 700, fontSize: '1.05rem' }}>{p.name}</div>
+                                        <td style={{ cursor: 'pointer' }} onClick={() => openTicker(p.ticker)}>
+                                            <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--accent-blue)', textDecoration: 'underline' }}>{p.name}</div>
                                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{p.base} → {p.quote}</div>
                                         </td>
                                         <td style={{ fontWeight: 700, fontSize: '1.15rem' }}>{p.rate}</td>
@@ -3041,6 +3239,7 @@ export function LegendaryPortfolios() {
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
     const [activeRegion, setActiveRegion] = useState('USA') // USA, Europe, India
+    const { openTicker } = useTickerDetail()
 
     useEffect(() => {
         setLoading(true)
@@ -3211,10 +3410,13 @@ export function LegendaryPortfolios() {
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                         {pf.allocation.map((item, i) => (
                                             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.8rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                                                <div 
+                                                    style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', cursor: 'pointer' }}
+                                                    onClick={() => openTicker(item.ticker)}
+                                                >
                                                     <div style={{ width: 10, height: 10, borderRadius: '50%', background: pieColors[i % pieColors.length] }}></div>
                                                     <div>
-                                                        <div style={{ fontWeight: 600, color: 'white', fontSize: '1rem' }}>{item.asset}</div>
+                                                        <div style={{ fontWeight: 600, color: 'var(--accent-blue)', fontSize: '1rem', textDecoration: 'underline' }}>{item.asset}</div>
                                                         <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{item.ticker}</div>
                                                     </div>
                                                 </div>

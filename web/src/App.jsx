@@ -5,7 +5,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import './index.css'
 
 // Import our specific page components
-import { DashboardOverview, Portfolio, RiskAnalysis, Settings, SectorHeatmap, SectorIndices, DebtFunds, MacroDashboard, CommodityTracker, ForexMonitor, CorrelationMatrix, Nifty500Heatmap, MomentumAnalysis, GrowthAnalysis, RiskAdjustedAnalysis, IncomeAnalysis, MarketNews, AllocationAdvisor, BacktestView, IndiaMutualFunds, LegendaryPortfolios } from './pages/Views'
+import { DashboardOverview, Portfolio, RiskAnalysis, Settings, SectorHeatmap, SectorIndices, DebtFunds, MacroDashboard, CommodityTracker, ForexMonitor, CorrelationMatrix, Nifty500Heatmap, MomentumAnalysis, GrowthAnalysis, RiskAdjustedAnalysis, IncomeAnalysis, MarketNews, AllocationAdvisor, BacktestView, IndiaMutualFunds, LegendaryPortfolios, TickerDetailProvider, useTickerDetail } from './pages/Views'
 
 const API_BASE = "http://localhost:8001/api"
 
@@ -165,6 +165,7 @@ function Screener() {
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
   const [expandedRow, setExpandedRow] = useState(null)
+  const { openTicker } = useTickerDetail()
 
   useEffect(() => {
     fetch(`${API_BASE}/screener`)
@@ -259,9 +260,12 @@ function Screener() {
                         >
                           <td><span className="rank-badge">#{idx + 1}</span></td>
                           <td>
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                              <span style={{ fontWeight: 600, color: 'white' }}>{row.ticker}</span>
-                              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{row.name}</span>
+                            <div 
+                              style={{ display: 'flex', flexDirection: 'column', cursor: 'pointer' }}
+                              onClick={(e) => { e.stopPropagation(); openTicker(row.ticker); }}
+                            >
+                              <span style={{ fontWeight: 600, color: 'var(--accent-blue)', textDecoration: 'underline' }}>{row.ticker}</span>
+                              <span style={{ fontSize: 0.85, color: 'var(--text-muted)' }}>{row.name}</span>
                             </div>
                           </td>
                           <td><span style={{ background: 'rgba(255,255,255,0.05)', padding: '0.3rem 0.6rem', borderRadius: '6px', fontSize: '0.85rem' }}>{row.sector}</span></td>
@@ -353,7 +357,8 @@ function Screener() {
 function App() {
   return (
     <BrowserRouter>
-      <div className="app-container">
+      <TickerDetailProvider>
+        <div className="app-container">
         {/* Sidebar Navigation */}
         <aside className="sidebar">
           <div className="logo glass-panel" style={{ padding: '1rem', border: 'none', background: 'transparent', boxShadow: 'none' }}>
@@ -464,7 +469,8 @@ function App() {
             </Routes>
           </ErrorBoundary>
         </main>
-      </div>
+        </div>
+      </TickerDetailProvider>
     </BrowserRouter >
   )
 }
