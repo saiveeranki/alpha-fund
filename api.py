@@ -3,6 +3,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from data.manager import DataManager
 from engine.magic_formula import rank_stocks
 from engine.backtester import PortfolioBacktester
+from engine.sentiment import SentimentEngine
+from engine.ai_forecaster import AIForecaster
+from engine.risk_engine import RiskEngine
+from engine.optimizer import PortfolioOptimizer
+from engine.scanner import ContrarianScanner
+from engine.advisor import SectorAdvisor
+from engine.intel import InstitutionalIntel
+from engine.briefing import BriefingEngine
+from engine.behavioral import BehavioralEngine
 import pandas as pd
 
 app = FastAPI(title="Hedge Fund Alpha API", version="1.0")
@@ -17,6 +26,17 @@ app.add_middleware(
 )
 
 data_manager = DataManager()
+
+# Initialize AI Engines
+sentiment_engine = SentimentEngine()
+forecaster = AIForecaster(data_manager)
+risk_engine = RiskEngine(data_manager)
+optimizer = PortfolioOptimizer(data_manager)
+scanner = ContrarianScanner(data_manager)
+advisor = SectorAdvisor(data_manager)
+intel_engine = InstitutionalIntel(data_manager)
+briefing_engine = BriefingEngine(data_manager)
+behavioral_engine = BehavioralEngine(data_manager)
 
 # Expanded Global Stock Universe
 GLOBAL_UNIVERSE = [
@@ -313,6 +333,74 @@ async def update_portfolio(ticker: str, payload: dict):
         lump_sum=payload.get("lump_sum"),
         monthly_sip=payload.get("monthly_sip"),
     )
+
+
+# --- New AI v2 Endpoints ---
+
+@app.get("/api/ai/forecast/{ticker}")
+async def get_ai_forecast(ticker: str):
+    """Returns GBM projection and human-like narrative."""
+    return forecaster.generate_forecast(ticker)
+
+@app.get("/api/ai/scanner")
+async def get_contrarian_scan():
+    """Returns regional contrarian recovery results."""
+    return scanner.scan_all_regions()
+
+@app.get("/api/ai/advisor")
+async def get_sector_advice(region: str = "US"):
+    """Returns sector buy/sell recommendations with reasoning."""
+    return advisor.get_sector_advisor_report(region)
+
+@app.get("/api/ai/intel")
+async def get_institutional_intel():
+    """Returns hedge fund summaries and expert alignment."""
+    summaries = intel_engine.get_filing_summaries()
+    # Check alignment against live portfolio
+    portfolio = data_manager.get_portfolio_data()
+    matches = intel_engine.check_expert_match(portfolio)
+    return {"summaries": summaries, "matches": matches}
+
+@app.get("/api/ai/briefing")
+async def get_ai_briefing():
+    """Returns synthesized daily morning briefing narrative."""
+    portfolio = data_manager.get_portfolio_data()
+    # Gather data from other engines for synthesis
+    adv_data = advisor.get_sector_advisor_report("US")
+    scan_data = scanner.scan_all_regions()
+    risk_data = risk_engine.stress_test(portfolio)
+    intel_data = intel_engine.get_filing_summaries()
+    
+    return {
+        "narrative": briefing_engine.generate_daily_briefing(adv_data, scan_data, risk_data, intel_data),
+        "bullets": briefing_engine.generate_bullet_briefing(risk_data)
+    }
+
+@app.get("/api/ai/behavioral")
+async def get_behavioral_metrics(age: int = 25, sip: float = 500):
+    """Returns survival score, barbell split, and youth compounding clock."""
+    portfolio = data_manager.get_portfolio_data()
+    total_val = sum(h.get('value', 0) for h in portfolio)
+    
+    return {
+        "survival": behavioral_engine.calculate_survival_score(portfolio),
+        "barbell": behavioral_engine.get_barbell_allocation(portfolio),
+        "compounding": behavioral_engine.get_compounding_clock(total_val, sip, current_age=age),
+        "milestones": behavioral_engine.get_milestones(total_val)
+    }
+
+@app.get("/api/ai/optimize")
+async def get_ai_optimization():
+    """Returns value-tilted portfolio rebalancing suggestions."""
+    portfolio = data_manager.get_portfolio_data()
+    scan_data = scanner.scan_all_regions().get("US", {}).get("top_candidates", [])
+    return optimizer.get_optimal_allocation(portfolio, scan_data)
+
+@app.get("/api/ai/risk-stress")
+async def get_crisis_shocks():
+    """Returns detailed historical crisis simulation results."""
+    portfolio = data_manager.get_portfolio_data()
+    return risk_engine.stress_test(portfolio)
 
 
 if __name__ == "__main__":

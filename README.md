@@ -8,9 +8,9 @@
 
 # 🏛️ Alpha Fund — Institutional-Grade Investment Intelligence Platform
 
-**Alpha Fund** is a full-stack investment research and portfolio analytics platform that brings hedge-fund-level analysis to retail investors. It combines Joel Greenblatt's **Magic Formula** stock screening with real-time market data, portfolio risk analytics, sector rotation analysis, and macro-economic monitoring — all in a sleek, dark-themed dashboard.
+**Alpha Fund v2** is a sophisticated, full-stack investment research and portfolio analytics platform. It goes beyond data presentation to provide **AI-driven forecasting, behavioral risk scoring, and legendary investor alignment.**
 
-> Built with **FastAPI** (Python) + **React** (Vite), powered by **Yahoo Finance** data.
+> Built with **FastAPI** (Python) + **React** (Vite), powered by **Yahoo Finance** and a custom **Neural Analytical Engine.**
 
 ---
 
@@ -107,32 +107,52 @@ Compares your portfolio allocation against strategies from **Ray Dalio (All Weat
 
 ---
 
+## 🚀 Alpha v2: The 17 Pillars of Intelligence
+
+This update evolves the platform into a "Neural Network" of investment wisdom, integrating philosophies from the world's greatest thinkers:
+
+| Pillar | Philosophy / Feature | Engine |
+|--------|----------------------|--------|
+| **1. AI Forecasting** | Geometric Brownian Motion Cones | `ai_forecaster.py` |
+| **2. Human Narrative** | AI-generated market commentary | `sentiment.py` |
+| **3. Crisis Simulator** | Historical Stress Testing (2008, 2020) | `risk_engine.py` |
+| **4. Contrarian Hunter** | Z-Score Cyclical Trough Scanner | `scanner.py` |
+| **5. Rule of 72** | "Years to Double" dynamic badges | `advisor.py` |
+| **6. The Ten-Bagger** | Peter Lynch GARP & PEG Analysis | `advisor.py` |
+| **7. Survival Score** | Morgan Housel's Staying Power Math | `behavioral.py` |
+| **8. Antifragile Barbell**| Taleb's 90/10 Safety-upside Strategy | `behavioral.py` |
+| **9. Market Cycle Meter**| Howard Marks' Cycle Timing Gauge | `advisor.py` |
+| **10. Institutional Intel**| 13F Filing Summary (Buffett, Dalio) | `intel.py` |
+| **11. Expert Match** | Alerts when legends buy your tickers | `intel.py` |
+| **12. Neural Links** | Macro/Commodity impact on Forecasts | `sentiment.py` |
+| **13. Sector Advisor** | Buy/Sell/Hold with real reasoning | `advisor.py` |
+| **14. Goldilocks Growth**| 12-35% CAGR "Sweet Spot" scanner | `scanner.py` |
+| **15. AI Briefing** | Daily morning 250-word synthesis | `briefing.py` |
+| **16. Alpha Academy** | ELI5 Jargon Dictionary & Mental Models | `Views.jsx` |
+| **17. Youth Alpha** | Compounding Clock & SIP Cost of Delay | `behavioral.py` |
+
 ## 🏗️ Architecture
 
 ```
 alpha-fund/
-├── api.py                    # FastAPI REST server (20+ endpoints)
-├── main.py                   # CLI test runner for Magic Formula
+├── api.py                    # FastAPI REST server (30+ endpoints)
 ├── data/
 │   ├── database.py           # SQLAlchemy models & SQLite session
-│   ├── manager.py            # Central data hub (1700+ lines)
-│   ├── models.py             # Pydantic data models
-│   ├── fetcher.py            # Legacy data fetcher
+│   ├── manager.py            # Central data hub
 │   └── providers/
-│       ├── base_provider.py  # Abstract provider interface
-│       └── yfinance_provider.py  # Yahoo Finance implementation
+│       └── yfinance_provider.py
 ├── engine/
-│   └── magic_formula.py      # Greenblatt ranking algorithm
-├── web/                      # React frontend (Vite)
-│   ├── src/
-│   │   ├── App.jsx           # Main app, routing, Screener component
-│   │   ├── index.css         # Dark glassmorphic design system
-│   │   └── pages/
-│   │       └── Views.jsx     # All page components (2300+ lines)
-│   ├── package.json
-│   └── vite.config.js
-└── docs/
-    └── screenshots/          # Application screenshots
+│   ├── sentiment.py          # Central news intelligence [NEW]
+│   ├── ai_forecaster.py      # Probability projections [NEW]
+│   ├── risk_engine.py        # Crisis stress testing [NEW]
+│   ├── behaviorial.py        # Psychology of money logic [NEW]
+│   ├── advisor.py            # Decision & Cycle logic [NEW]
+│   ├── scanner.py            # Regional contrarian scanner [NEW]
+│   ├── intel.py              # Hedge fund 13F summary [NEW]
+│   ├── briefing.py           # Daily synthesis [NEW]
+│   └── magic_formula.py      # Core ranking algorithm
+├── web/                      # React frontend
+└── requirements.txt          # Python dependencies
 ```
 
 ---
