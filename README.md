@@ -96,7 +96,7 @@ Comprehensive analytics on top-performing India mutual funds across Equity, Debt
 ### Legendary Portfolios Explorer
 Replicate the exact asset allocations of the world's greatest investors. Features a tabbed interface (USA, Europe, India) detailing the strategies, portfolio diversification (e.g., Warren Buffett's high-conviction holdings in Apple and Coca-Cola), simulated performance metrics, and asset breakdowns.
 
-![Legendary Portfolios](docs/screenshots/legendary_portfolios.png)
+![Legendary Portfolios Demo](docs/screenshots/legendary_demo.webp)
 
 ---
 
