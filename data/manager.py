@@ -14,6 +14,10 @@ class DataManager:
         # We start with just YFinance, but can add FMP, AlphaVantage here later
         self.yfinance = YFinanceProvider()
         
+        # In-memory cache for API responses
+        self._legendary_cache = None
+        self._legendary_cache_time = None
+        
     def _fetch_from_api(self, ticker: str, market: str) -> FinancialMetrics | None:
         """Logic to decide which API handles which market. Right now, all default to yfinance."""
         if market in ["US", "GLOBAL"]:
@@ -1936,8 +1940,16 @@ class DataManager:
             return None
 
     def get_legendary_portfolios(self) -> dict:
-        """Returns deep-researched portfolio allocations of legendary investors."""
-        return {
+        """Returns deep-researched portfolio allocations of legendary investors with dynamic performance metrics."""
+        import time
+        import yfinance as yf
+        import pandas as pd
+        
+        if self._legendary_cache and self._legendary_cache_time:
+            if time.time() - self._legendary_cache_time < 43200: # 12 hour cache
+                return self._legendary_cache
+                
+        base_allocations = {
             "USA": [
                 {
                     "name": "Warren Buffett (90/10)",
@@ -2032,4 +2044,98 @@ class DataManager:
                 }
             ]
         }
+        
+        try:
+            # 1. Gather all unique tickers
+            tickers = set()
+            for region, ports in base_allocations.items():
+                for p in ports:
+                    for a in p['allocation']:
+                        tickers.add(a['ticker'])
+            tickers_list = list(tickers)
+            
+            # 2. Fetch bulk historical data
+            hist_data = yf.download(tickers_list, period="5y", interval="1mo")['Adj Close']
+            
+            # 3. Fast fetch for dividend yields
+            import concurrent.futures
+            yields = {}
+            def fetch_yield(t):
+                try:
+                    return t, (yf.Ticker(t).info.get("dividendYield", 0) or 0) * 100
+                except:
+                    return t, 0
+            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+                results = list(executor.map(fetch_yield, tickers_list))
+                for t, y in results:
+                    yields[t] = y
+                    
+            # 4. Calculate metrics per portfolio
+            for region, ports in base_allocations.items():
+                for p in ports:
+                    metrics = {"cagr_5y": None, "yield": 0, "chart": [], "sip_return": None}
+                    weights = {a['ticker']: a['weight'] / 100 for a in p['allocation']}
+                    
+                    # Yield
+                    metrics['yield'] = round(sum(weights[t] * yields.get(t, 0) for t in weights), 2)
+                    
+                    # History
+                    valid_cols = [c for c in weights.keys() if c in hist_data.columns]
+                    if valid_cols:
+                        df = hist_data[valid_cols].ffill().bfill()
+                        # Normalize to 1 at start
+                        try:
+                            norm_df = df / df.iloc[0]
+                            port_series = sum(norm_df[t] * weights[t] for t in valid_cols if df[t].iloc[0] > 0)
+                            
+                            # CAGR
+                            years = len(port_series) / 12  # approx 12 mo/yr
+                            if years > 0 and port_series.iloc[-1] > 0:
+                                cagr = ((port_series.iloc[-1] / port_series.iloc[0]) ** (1 / years) - 1) * 100
+                                metrics['cagr_5y'] = round(cagr, 2)
+                                
+                            # Chart Data & SIP Calculation
+                            # Assume $1000/mo SIP
+                            sip_capital = 0
+                            sip_value = 0
+                            
+                            for date, val in port_series.items():
+                                series_val = float(val)
+                                metrics['chart'].append({
+                                    "date": date.strftime("%Y-%m-%d"),
+                                    "value": round(series_val * 10000, 2) # Simulate $10k initial investment
+                                })
+                                # SIP logic
+                                sip_capital += 1000
+                                sip_value += 1000 # Add monthly
+                                # Grow by monthly return
+                                # Actually, easier: track units bought
+                            
+                            # Proper SIP calculation using price levels instead of simple growth
+                            total_units = 0
+                            for date, val in port_series.items():
+                                price = float(val)
+                                if price > 0:
+                                    total_units += (1000 / price)
+                                    
+                            final_sip_value = total_units * float(port_series.iloc[-1])
+                            total_invested = len(port_series) * 1000
+                            
+                            if total_invested > 0:
+                                sip_ret = ((final_sip_value - total_invested) / total_invested) * 100
+                                metrics['sip_return'] = round(sip_ret, 2)
+                                
+                        except Exception as e:
+                            print(f"Error calculating portfolio {p['name']}: {e}")
+                            
+                    p['metrics'] = metrics
+                    
+            self._legendary_cache = base_allocations
+            self._legendary_cache_time = time.time()
+            return base_allocations
+            
+        except Exception as e:
+            print(f"[Legendary Portfolios] Data Fetch Error: {e}")
+            # Fallback to static if failure
+            return base_allocations
 

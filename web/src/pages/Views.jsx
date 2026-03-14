@@ -3013,99 +3013,152 @@ export function LegendaryPortfolios() {
             </div>
 
             {/* Portfolios Grid */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '2rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem', paddingBottom: '2rem' }}>
                 {portfolios.map((pf, idx) => {
                     // Prepare data for Recharts PieChart
-                    const chartData = pf.allocation.map(item => ({
+                    const pieData = pf.allocation.map(item => ({
                         name: item.asset,
                         value: item.weight,
                         ticker: item.ticker
                     }))
 
+                    const metrics = pf.metrics || {}
+                    const chartData = metrics.chart || []
+
                     return (
                         <div key={idx} className="glass-panel" style={{ padding: '2rem' }}>
                             <div style={{ paddingBottom: '1.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-glass)' }}>
-                                <h2 style={{ fontSize: '1.4rem', marginBottom: '0.5rem', color: 'var(--accent-blue)' }}>{pf.name}</h2>
-                                <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: 0, lineHeight: '1.5' }}>{pf.description}</p>
+                                <h2 style={{ fontSize: '1.6rem', marginBottom: '0.5rem', color: 'var(--accent-blue)' }}>{pf.name}</h2>
+                                <p style={{ color: 'var(--text-muted)', fontSize: '1rem', margin: 0, lineHeight: '1.5' }}>{pf.description}</p>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 2fr', gap: '2rem', alignItems: 'center' }}>
-                                {/* Allocation Chart */}
-                                <div style={{ height: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <PieChart>
-                                            <Pie 
-                                                data={chartData} 
-                                                cx="50%" 
-                                                cy="45%" 
-                                                innerRadius={60} 
-                                                outerRadius={100} 
-                                                dataKey="value"
-                                                stroke="rgba(255,255,255,0.05)"
-                                                paddingAngle={2}
-                                                isAnimationActive={false}
-                                            >
-                                                {chartData.map((entry, i) => (
-                                                    <Cell key={`cell-${i}`} fill={pieColors[i % pieColors.length]} />
-                                                ))}
-                                            </Pie>
-                                            <Tooltip 
-                                                formatter={(value) => `${value}%`}
-                                                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }} 
-                                                itemStyle={{ color: '#fff' }}
-                                            />
-                                        </PieChart>
-                                    </ResponsiveContainer>
+                            {/* Performance Metrics Header */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2rem' }}>
+                                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px' }}>5Y CAGR</h4>
+                                    <div style={{ fontSize: '1.8rem', fontWeight: 700, color: metrics.cagr_5y > 0 ? 'var(--profit-green)' : 'white' }}>
+                                        {metrics.cagr_5y !== undefined && metrics.cagr_5y !== null ? `${metrics.cagr_5y}%` : 'N/A'}
+                                    </div>
+                                </div>
+                                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Avg Div Yield</h4>
+                                    <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#3b82f6' }}>
+                                        {metrics.yield !== undefined && metrics.yield !== null ? `${metrics.yield}%` : 'N/A'}
+                                    </div>
+                                </div>
+                                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Simulated 5Y SIP Return</h4>
+                                    <div style={{ fontSize: '1.8rem', fontWeight: 700, color: metrics.sip_return > 0 ? 'var(--profit-green)' : 'white' }}>
+                                        {metrics.sip_return !== undefined && metrics.sip_return !== null ? `+${metrics.sip_return.toLocaleString()}%` : 'N/A'}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Main Content Grid (Chart + Allocation Table) */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: '2rem', alignItems: 'start' }}>
+                                
+                                {/* Historical Line Chart */}
+                                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-glass)' }}>
+                                    <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', color: 'white' }}>5-Year Historical Growth ($10,000 Invested)</h3>
+                                    {chartData.length > 0 ? (
+                                        <div style={{ height: '300px', width: '100%' }}>
+                                            <ResponsiveContainer>
+                                                <LineChart data={chartData}>
+                                                    <XAxis 
+                                                        dataKey="date" 
+                                                        tickFormatter={(val) => val.substring(0, 4)} 
+                                                        stroke="var(--text-muted)" 
+                                                        minTickGap={30}
+                                                    />
+                                                    <YAxis 
+                                                        domain={['auto', 'auto']} 
+                                                        stroke="var(--text-muted)"
+                                                        tickFormatter={(val) => `$${(val/1000).toFixed(1)}k`}
+                                                    />
+                                                    <Tooltip 
+                                                        formatter={(value) => [`$${value.toLocaleString()}`, 'Portfolio Value']}
+                                                        contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }} 
+                                                        itemStyle={{ color: '#fff' }}
+                                                    />
+                                                    <Line 
+                                                        type="monotone" 
+                                                        dataKey="value" 
+                                                        stroke="var(--accent-blue)" 
+                                                        strokeWidth={2} 
+                                                        dot={false}
+                                                        activeDot={{ r: 6, fill: 'white' }}
+                                                    />
+                                                </LineChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    ) : (
+                                        <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                                            Not enough historical data available.
+                                        </div>
+                                    )}
                                 </div>
 
-                                {/* Allocation Table */}
-                                <div className="data-table-container">
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th>Asset Class</th>
-                                                <th>Target Weight</th>
-                                                <th>Ticker (ETF/Fund)</th>
-                                                <th>Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {pf.allocation.map((item, i) => (
-                                                <tr key={i}>
-                                                    <td>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                            <div style={{ width: 10, height: 10, borderRadius: '50%', background: pieColors[i % pieColors.length] }}></div>
-                                                            <span style={{ fontWeight: 600 }}>{item.asset}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td style={{ fontWeight: 700, color: 'var(--text-light)' }}>{item.weight}%</td>
-                                                    <td><span className="rank-badge">{item.ticker}</span></td>
-                                                    <td>
-                                                        <a 
-                                                            href={`https://finance.yahoo.com/quote/${item.ticker}`} 
-                                                            target="_blank" 
-                                                            rel="noreferrer"
-                                                            style={{ 
-                                                                color: 'var(--accent-blue)', 
-                                                                textDecoration: 'none', 
-                                                                fontSize: '0.85rem',
-                                                                background: 'rgba(59, 130, 246, 0.1)',
-                                                                padding: '0.3rem 0.6rem',
-                                                                borderRadius: '4px'
-                                                            }}
-                                                        >
-                                                            Research
-                                                        </a>
-                                                    </td>
+                                {/* Current Allocation Details */}
+                                <div>
+                                    <div style={{ height: '200px', marginBottom: '1rem' }}>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <PieChart>
+                                                <Pie 
+                                                    data={pieData} 
+                                                    cx="50%" 
+                                                    cy="50%" 
+                                                    innerRadius={50} 
+                                                    outerRadius={80} 
+                                                    dataKey="value"
+                                                    stroke="rgba(255,255,255,0.05)"
+                                                    paddingAngle={2}
+                                                    isAnimationActive={false}
+                                                >
+                                                    {pieData.map((entry, i) => (
+                                                        <Cell key={`cell-${i}`} fill={pieColors[i % pieColors.length]} />
+                                                    ))}
+                                                </Pie>
+                                                <Tooltip 
+                                                    formatter={(value) => `${value}%`}
+                                                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }} 
+                                                    itemStyle={{ color: '#fff' }}
+                                                />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </div>
+
+                                    <div className="data-table-container">
+                                        <table style={{ fontSize: '0.9rem' }}>
+                                            <thead>
+                                                <tr>
+                                                    <th style={{ padding: '0.8rem' }}>Asset Class</th>
+                                                    <th style={{ padding: '0.8rem' }}>Ticker</th>
+                                                    <th style={{ padding: '0.8rem' }}>Wt%</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody>
+                                                {pf.allocation.map((item, i) => (
+                                                    <tr key={i}>
+                                                        <td style={{ padding: '0.8rem' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                                <div style={{ width: 8, height: 8, borderRadius: '50%', background: pieColors[i % pieColors.length] }}></div>
+                                                                <span style={{ fontWeight: 500 }}>{item.asset}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td style={{ padding: '0.8rem' }}><span className="rank-badge" style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem' }}>{item.ticker}</span></td>
+                                                        <td style={{ padding: '0.8rem', fontWeight: 700 }}>{item.weight}%</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
+
                             </div>
                         </div>
                     )
                 })}
+            </div>
             </div>
         </>
     )
