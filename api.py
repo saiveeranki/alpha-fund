@@ -158,7 +158,6 @@ async def get_ticker_detail(ticker: str):
         raise HTTPException(status_code=404, detail="Ticker details not found")
     return data
 
-@app.get("/api/sector/heatmap")
 async def get_sector_heatmap(market: str = "US"):
     """
     Returns annual sector returns since 2010 for the heatmap visualization.
@@ -315,55 +314,6 @@ async def update_portfolio(ticker: str, payload: dict):
         monthly_sip=payload.get("monthly_sip"),
     )
 
-@app.get("/api/ticker/{ticker}/detail")
-async def get_ticker_detail(ticker: str):
-    """Returns full performance detail + price history for a single ticker."""
-    import yfinance as yf
-    try:
-        t = yf.Ticker(ticker)
-        info = t.info or {}
-        hist_5y = t.history(period="5y")
-        hist_1y = t.history(period="1y")
-        hist_1m = t.history(period="1mo")
-
-        # Build price history for chart (weekly samples from 5Y)
-        chart_data = []
-        if not hist_5y.empty:
-            sampled = hist_5y.resample('W').last().dropna()
-            for dt, row in sampled.iterrows():
-                chart_data.append({"date": dt.strftime("%Y-%m-%d"), "price": round(float(row['Close']), 2)})
-
-        current = round(float(hist_1m['Close'].iloc[-1]), 2) if not hist_1m.empty else None
-
-        # Returns
-        def calc_return(h, years=None):
-            if h is not None and len(h) > 5:
-                s, e = float(h['Close'].iloc[0]), float(h['Close'].iloc[-1])
-                if s > 0:
-                    if years and years > 1:
-                        return round(((e / s) ** (1 / years) - 1) * 100, 2)
-                    return round((e - s) / s * 100, 2)
-            return None
-
-        return {
-            "ticker": ticker,
-            "name": info.get("shortName", ticker),
-            "price": current,
-            "currency": info.get("currency", "USD"),
-            "return_1m": calc_return(hist_1m),
-            "return_1y": calc_return(hist_1y),
-            "cagr_5y": calc_return(hist_5y, 5),
-            "high_52w": info.get("fiftyTwoWeekHigh"),
-            "low_52w": info.get("fiftyTwoWeekLow"),
-            "market_cap": info.get("totalAssets") or info.get("marketCap"),
-            "expense_ratio": info.get("annualReportExpenseRatio"),
-            "dividend_yield": info.get("yield") or info.get("dividendYield"),
-            "beta": info.get("beta"),
-            "category": info.get("category", ""),
-            "chart": chart_data,
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn

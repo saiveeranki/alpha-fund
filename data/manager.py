@@ -1,9 +1,9 @@
-from datetime import date, datetime
-from sqlalchemy.orm import Session
-from data.database import SessionLocal, Asset, FinancialStatementCache, TickerRegistry, PortfolioHolding
+from data.database import SessionLocal, Asset, FinancialStatementCache, TickerRegistry, PortfolioHolding, GenericCache
 from data.providers.yfinance_provider import YFinanceProvider
 from data.models import FinancialMetrics
 import pandas as pd
+import json
+from datetime import date, datetime, timedelta
 
 class DataManager:
     """
@@ -13,10 +13,40 @@ class DataManager:
     def __init__(self):
         # We start with just YFinance, but can add FMP, AlphaVantage here later
         self.yfinance = YFinanceProvider()
-        
-        # In-memory cache for API responses
-        self._legendary_cache = None
-        self._legendary_cache_time = None
+
+    def _get_cached_data(self, key: str) -> any:
+        """Helper to get data from local DB cache if not expired."""
+        db: Session = SessionLocal()
+        try:
+            cache_item = db.query(GenericCache).filter(GenericCache.key == key).first()
+            if cache_item and cache_item.expiry > datetime.utcnow():
+                return json.loads(cache_item.data)
+        except Exception as e:
+            print(f"[DataManager] Cache read error for {key}: {e}")
+        finally:
+            db.close()
+        return None
+
+    def _set_cached_data(self, key: str, data: any, expiry_hours: int = 24):
+        """Helper to save data to local DB cache with expiry."""
+        db: Session = SessionLocal()
+        try:
+            # Delete old entry if exists
+            db.query(GenericCache).filter(GenericCache.key == key).delete()
+            
+            new_cache = GenericCache(
+                key=key,
+                data=json.dumps(data),
+                expiry=datetime.utcnow() + timedelta(hours=expiry_hours),
+                updated_at=datetime.utcnow()
+            )
+            db.add(new_cache)
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            print(f"[DataManager] Cache write error for {key}: {e}")
+        finally:
+            db.close()
         
     def _fetch_from_api(self, ticker: str, market: str) -> FinancialMetrics | None:
         """Logic to decide which API handles which market. Right now, all default to yfinance."""
@@ -27,9 +57,18 @@ class DataManager:
     def get_historical_prices(self, ticker: str, period: str = "5y") -> list[dict] | None:
         """
         Passes historical request to the YFinance provider.
-        (Future Optimization: Cache this in SQLite too to prevent repeated heavy calls)
+        Caches it in SQLite to prevent repeated heavy calls.
         """
-        return self.yfinance.fetch_history(ticker, period)
+        cache_key = f"hist_{ticker}_{period}"
+        cached = self._get_cached_data(cache_key)
+        if cached:
+            print(f"[DataManager] Loaded {ticker} historical from DB Cache.")
+            return cached
+            
+        data = self.yfinance.fetch_history(ticker, period)
+        if data:
+            self._set_cached_data(cache_key, data, expiry_hours=24) # Cache for 1 day
+        return data
         
     def get_magic_formula_data(self, ticker: str, name: str, sector: str, market: str = "GLOBAL") -> dict:
         """
@@ -171,6 +210,12 @@ class DataManager:
         market_map = {"US": US_SECTORS, "EU": EU_SECTORS, "India": INDIA_SECTORS}
         SECTORS = market_map.get(market, US_SECTORS)
         
+        cache_key = f"sector_returns_{market}_{start_year}"
+        cached = self._get_cached_data(cache_key)
+        if cached:
+            print(f"[DataManager] Loaded Sector Returns ({market}) from DB Cache.")
+            return cached
+
         results = []
         for sector in SECTORS:
             # Fetch returns for all ETFs in this sector and average them per year
@@ -197,6 +242,9 @@ class DataManager:
                     "color": sector["color"],
                     "returns": avg_returns
                 })
+        
+        if results:
+            self._set_cached_data(cache_key, results, expiry_hours=24)
         return results
 
     def get_sector_indices_metrics(self, market: str = "US") -> list[dict]:
@@ -204,6 +252,12 @@ class DataManager:
         Fetches detailed financial metrics (Magic Formula + CAGR) for sector ETFs/indices.
         Supports US, EU, and India markets.
         """
+        cache_key = f"sector_metrics_{market}"
+        cached = self._get_cached_data(cache_key)
+        if cached:
+            print(f"[DataManager] Loaded Sector Metrics ({market}) from DB Cache.")
+            return cached
+
         US_SECTORS = [
             {"name": "Technology", "tickers": ["XLK", "VGT", "IYW", "FTEC", "IXN"], "color": "#3b82f6"},
             {"name": "Financials", "tickers": ["XLF", "VFH", "IYF", "FNCL", "IXG"], "color": "#10b981"},
@@ -305,6 +359,8 @@ class DataManager:
                 
                 results.append(result_entry)
                     
+        if results:
+            self._set_cached_data(cache_key, results, expiry_hours=12)
         return results
 
     def get_debt_funds_data(self, market: str = "US") -> list[dict]:
@@ -312,6 +368,12 @@ class DataManager:
         Fetches metrics for top debt funds/ETFs: yield, NAV, 1Y/3Y/5Y returns, AUM.
         Supports US, EU, and India markets.
         """
+        cache_key = f"debt_funds_{market}"
+        cached = self._get_cached_data(cache_key)
+        if cached:
+            print(f"[DataManager] Loaded Debt Funds ({market}) from DB Cache.")
+            return cached
+
         US_FUNDS = [
             {"category": "Aggregate Bond", "funds": [
                 {"ticker": "BND", "name": "Vanguard Total Bond Market ETF"},
@@ -440,7 +502,8 @@ class DataManager:
                         "nav": None, "yield": None, "aum": None,
                         "return_1y": None, "return_3y": None, "return_5y": None,
                     })
-        
+        if results:
+            self._set_cached_data(cache_key, results, expiry_hours=12)
         return results
 
     def get_india_mutual_funds_data(self) -> list[dict]:
@@ -448,6 +511,12 @@ class DataManager:
         Fetches comprehensive data for Indian Mutual Funds and related assets.
         Categories: Equity Leaders, Sectoral/Thematic, Fixed Income & Liquid, G-Secs, Gold & SGBs.
         """
+        cache_key = "india_mutual_funds"
+        cached = self._get_cached_data(cache_key)
+        if cached:
+            print("[DataManager] Loaded India Mutual Funds from DB Cache.")
+            return cached
+
         import yfinance as yf_mod
         import numpy as np
         import pandas as pd
@@ -538,11 +607,18 @@ class DataManager:
                         "return_1y": None, "return_3y": None, "return_5y": None,
                     })
 
+        if results:
+            self._set_cached_data(cache_key, results, expiry_hours=12)
         return results
-
 
     def get_macro_overview(self) -> dict:
         """Fetches major market indices, VIX, and treasury yields with sparkline data."""
+        cache_key = "macro_overview"
+        cached = self._get_cached_data(cache_key)
+        if cached:
+            print("[DataManager] Loaded Macro Overview from DB Cache.")
+            return cached
+            
         import yfinance as yf_mod
         
         INDICES = [
@@ -614,10 +690,18 @@ class DataManager:
             except Exception as e:
                 print(f"[Macro] Error for {item['ticker']}: {e}")
         
+        if results:
+            self._set_cached_data(cache_key, results, expiry_hours=4)
         return results
 
     def get_commodities_data(self) -> list[dict]:
         """Fetches commodity prices, daily change, and 1-month sparkline."""
+        cache_key = "commodities_data"
+        cached = self._get_cached_data(cache_key)
+        if cached:
+            print("[DataManager] Loaded Commodities Data from DB Cache.")
+            return cached
+
         import yfinance as yf_mod
         
         COMMODITIES = [
@@ -672,10 +756,18 @@ class DataManager:
             except Exception as e:
                 print(f"[Commodities] Error for {item['ticker']}: {e}")
         
+        if results:
+            self._set_cached_data(cache_key, results, expiry_hours=4)
         return results
 
     def get_forex_data(self) -> list[dict]:
         """Fetches major forex pairs with rates, daily change, and sparklines."""
+        cache_key = "forex_data"
+        cached = self._get_cached_data(cache_key)
+        if cached:
+            print("[DataManager] Loaded Forex Data from DB Cache.")
+            return cached
+
         import yfinance as yf_mod
         
         PAIRS = [
@@ -736,10 +828,18 @@ class DataManager:
             except Exception as e:
                 print(f"[Forex] Error for {pair['ticker']}: {e}")
         
+        if results:
+            self._set_cached_data(cache_key, results, expiry_hours=4)
         return results
 
     def get_correlation_matrix(self) -> dict:
         """Computes correlation matrix across major asset classes using 1Y daily returns."""
+        cache_key = "correlation_matrix"
+        cached = self._get_cached_data(cache_key)
+        if cached:
+            print("[DataManager] Loaded Correlation Matrix from DB Cache.")
+            return cached
+
         import yfinance as yf_mod
         import numpy as np
         import pandas as pd
@@ -795,6 +895,12 @@ class DataManager:
         Fetches annual returns + 5Y CAGR for all Nifty sectoral indices.
         Returns heatmap data sorted by 5Y CAGR (best first).
         """
+        cache_key = f"nifty500_heatmap_{start_year}"
+        cached = self._get_cached_data(cache_key)
+        if cached:
+            print(f"[DataManager] Loaded Nifty 500 Heatmap ({start_year}) from DB Cache.")
+            return cached
+
         import yfinance as yf_mod
         from datetime import datetime
 
@@ -882,6 +988,8 @@ class DataManager:
             all_years.update(r["returns"].keys())
         years = sorted(all_years)
 
+        if results:
+            self._set_cached_data(cache_key, {"sectors": results, "years": years}, expiry_hours=4)
         return {"sectors": results, "years": years}
 
     def get_etf_analysis(self, region: str = "US") -> dict:
@@ -890,6 +998,12 @@ class DataManager:
         Returns ranked ETFs with metrics: 5Y CAGR, 1Y return, 3M return,
         volatility, Sharpe ratio, max drawdown, dividend yield.
         """
+        cache_key = f"etf_analysis_{region}"
+        cached = self._get_cached_data(cache_key)
+        if cached:
+            print(f"[DataManager] Loaded ETF Analysis ({region}) from DB Cache.")
+            return cached
+
         import yfinance as yf_mod
         import numpy as np
 
@@ -1017,6 +1131,12 @@ class DataManager:
             except Exception as e:
                 print(f"  [Analysis] Error {etf['ticker']}: {e}")
 
+        if results:
+            self._set_cached_data(cache_key, {
+                "region": region,
+                "etfs": results,
+                "count": len(results),
+            }, expiry_hours=12)
         return {
             "region": region,
             "etfs": results,
@@ -1025,6 +1145,12 @@ class DataManager:
 
     def get_market_news(self, region: str = "US") -> list:
         """Fetches market news for a region using major index/ETF tickers."""
+        cache_key = f"market_news_{region}"
+        cached = self._get_cached_data(cache_key)
+        if cached:
+            print(f"[DataManager] Loaded Market News ({region}) from DB Cache.")
+            return cached
+
         import yfinance as yf_mod
 
         NEWS_TICKERS = {
@@ -1086,13 +1212,22 @@ class DataManager:
 
         # Sort by date descending
         news_items.sort(key=lambda x: x.get("date", ""), reverse=True)
-        return news_items[:30]
+        results = news_items[:30]
+        if results:
+            self._set_cached_data(cache_key, results, expiry_hours=1) # News expires quickly
+        return results
 
     def get_allocation_advice(self) -> dict:
         """
         Compiles allocation strategies from world-class investors,
         computes a recommended average, and compares with user portfolio.
         """
+        cache_key = "allocation_advice"
+        cached = self._get_cached_data(cache_key)
+        # We only cache if portfolio results haven't changed, but simpler to cache for a short time
+        # or just skip DB cache for this since it depends on the USER's portfolio in the DB.
+        # Actually, let's skip DB cache for allocation advice as it's computed from local DB anyway.
+        
         from data.database import SessionLocal, PortfolioHolding
 
         # --- Famous Investor Allocation Models ---
@@ -1941,22 +2076,26 @@ class DataManager:
 
     def get_legendary_portfolios(self) -> dict:
         """Returns deep-researched portfolio allocations of legendary investors with dynamic performance metrics."""
+        cache_key = "legendary_portfolios"
+        cached = self._get_cached_data(cache_key)
+        if cached:
+            print("[DataManager] Loaded Legendary Portfolios from DB Cache.")
+            return cached
+
         import time
         import yfinance as yf
-        import pandas as pd
-        
-        if self._legendary_cache and self._legendary_cache_time:
-            if time.time() - self._legendary_cache_time < 43200: # 12 hour cache
-                return self._legendary_cache
                 
         base_allocations = {
             "USA": [
                 {
-                    "name": "Warren Buffett (90/10)",
-                    "description": "Buffett's famously simple portfolio plan for his wife's inheritance. It relies on the long-term compounding of the American economy.",
+                    "name": "Warren Buffett (Berkshire Focused)",
+                    "description": "Inspired by the Oracle of Omaha's iconic high-conviction holdings. Focuses on consumer brand moats and technology leaders.",
                     "allocation": [
-                        {"asset": "US Large Cap Equity", "ticker": "VOO", "weight": 90},
-                        {"asset": "Short-Term US Treasuries", "ticker": "VGSH", "weight": 10}
+                        {"asset": "Consumer Staples (The Moat)", "ticker": "KO", "weight": 25},
+                        {"asset": "Technology Pioneer", "ticker": "AAPL", "weight": 40},
+                        {"asset": "Financial Services", "ticker": "BAC", "weight": 20},
+                        {"asset": "Energy / Commodities", "ticker": "OXY", "weight": 10},
+                        {"asset": "Cash Equivalents", "ticker": "BIL", "weight": 5}
                     ]
                 },
                 {
@@ -1972,7 +2111,7 @@ class DataManager:
                 },
                 {
                     "name": "David Swensen (Yale Model)",
-                    "description": "The 'Lazy Portfolio' version of the Yale Endowment approach, heavily diversified across asset classes, including real estate.",
+                    "description": "The 'Lazy Portfolio' version of the Yale Endowment approach, heavily diversified across asset classes including real estate.",
                     "allocation": [
                         {"asset": "US Total Stock Market", "ticker": "VTI", "weight": 30},
                         {"asset": "Real Estate (REITs)", "ticker": "VNQ", "weight": 20},
@@ -2130,8 +2269,8 @@ class DataManager:
                             
                     p['metrics'] = metrics
                     
-            self._legendary_cache = base_allocations
-            self._legendary_cache_time = time.time()
+            if base_allocations:
+                self._set_cached_data(cache_key, base_allocations, expiry_hours=12)
             return base_allocations
             
         except Exception as e:

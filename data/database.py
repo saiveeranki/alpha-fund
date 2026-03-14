@@ -50,6 +50,14 @@ class PortfolioHolding(Base):
     currency = Column(String, default='USD')  # EUR, USD, GBP, INR
     added_date = Column(DateTime, default=datetime.utcnow)
 
+class GenericCache(Base):
+    """Generic cache for large API responses (stored as JSON)."""
+    __tablename__ = 'generic_cache'
+    key = Column(String, primary_key=True)
+    data = Column(String)  # JSON string
+    expiry = Column(DateTime)
+    updated_at = Column(DateTime, default=datetime.utcnow)
+
 # Create all tables in the engine
 Base.metadata.create_all(engine)
 

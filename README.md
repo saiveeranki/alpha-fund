@@ -94,14 +94,14 @@ Comprehensive analytics on top-performing India mutual funds across Equity, Debt
 ---
 
 ### Legendary Portfolios Explorer
-Replicate the exact asset allocations of the world's greatest investors. Features a tabbed interface (USA, Europe, India) detailing the strategies, specific ETF allocations, 5-Year CAGR, simulated SIP returns, and comprehensive historical growth charts.
+Replicate the exact asset allocations of the world's greatest investors. Features a tabbed interface (USA, Europe, India) detailing the strategies, portfolio diversification (e.g., Warren Buffett's high-conviction holdings in Apple and Coca-Cola), simulated performance metrics, and asset breakdowns.
 
-![Legendary Portfolios](docs/screenshots/legendary_portfolios_dynamic.png)
+![Legendary Portfolios](docs/screenshots/legendary_portfolios.png)
 
 ---
 
 ### Allocation Advisor — Strategies from the Masters
-Compares your portfolio allocation against strategies from **Ray Dalio (All Weather), Warren Buffett (90/10), Harry Browne (Permanent), David Swensen (Yale), and more**. Shows recommended average allocation weighted across these legendary approaches.
+Compares your portfolio allocation against strategies from **Ray Dalio (All Weather), Warren Buffett (Berkshire Focused), Harry Browne (Permanent), David Swensen (Yale), and more**. Shows recommended average allocation weighted across these legendary approaches.
 
 ![Allocation Advisor](docs/screenshots/allocation.png)
 

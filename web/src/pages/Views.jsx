@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { LayoutDashboard, TrendingUp, AlertTriangle, PlayCircle, Grid, Rocket } from 'lucide-react'
+import { LayoutDashboard, TrendingUp, AlertTriangle, PlayCircle, Grid, Rocket, Zap, Shield, Wallet, Newspaper, PieChart as PieChartIcon, Activity, Crown, IndianRupee, Globe, Package, ArrowLeftRight, Grid3X3, List, DollarSign } from 'lucide-react'
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, BarChart, Bar, ScatterChart, Scatter } from 'recharts'
 
 // Mock Data
@@ -49,9 +49,10 @@ function SvgDonut({ data }) {
     const COLORS = ['var(--accent-blue)', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981']
 
     const paths = data.map((d, i) => {
-        const strokeDasharray = `${(d.percent / 100) * circumference} ${circumference}`
+        const percent = Math.max(0, d.percent || 0)
+        const strokeDasharray = `${(percent / 100) * circumference} ${circumference}`
         const strokeDashoffset = -(accumulatedPercent / 100) * circumference
-        accumulatedPercent += d.percent
+        accumulatedPercent += percent
 
         return (
             <circle
@@ -197,7 +198,14 @@ export function DashboardOverview() {
 
     if (loading) return (
         <>
-            <header><h1>Executive Dashboard</h1><p className="subtitle">Loading portfolio data...</p></header>
+            <header style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                <LayoutDashboard size={40} style={{ color: 'var(--accent-blue)', filter: 'drop-shadow(0 0 10px rgba(59, 130, 246, 0.4))' }} />
+                <div>
+                    <h1 style={{ margin: 0 }}>Executive Dashboard</h1>
+                    <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>Loading portfolio data...</p>
+                </div>
+            </header>
+            <div style={{ height: '3rem' }}></div>
             <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                 <LayoutDashboard size={48} style={{ color: 'var(--accent-blue)', opacity: 0.5, marginBottom: '1rem' }} />
                 <h2>Analyzing your portfolio...</h2>
@@ -207,7 +215,14 @@ export function DashboardOverview() {
 
     if (!data || data.holdings_count === 0) return (
         <>
-            <header><h1>Executive Dashboard</h1><p className="subtitle">Your portfolio at a glance.</p></header>
+            <header style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                <LayoutDashboard size={40} style={{ color: 'var(--accent-blue)', filter: 'drop-shadow(0 0 10px rgba(59, 130, 246, 0.4))' }} />
+                <div>
+                    <h1 style={{ margin: 0 }}>Executive Dashboard</h1>
+                    <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>Your portfolio at a glance.</p>
+                </div>
+            </header>
+            <div style={{ height: '3rem' }}></div>
             <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center' }}>
                 <LayoutDashboard size={48} style={{ color: 'var(--accent-blue)', opacity: 0.4, marginBottom: '1rem' }} />
                 <h2 style={{ fontSize: '1.3rem', marginBottom: '0.5rem' }}>No holdings yet</h2>
@@ -233,10 +248,14 @@ export function DashboardOverview() {
 
     return (
         <>
-            <header>
-                <h1>Executive Dashboard</h1>
-                <p className="subtitle">Real-time portfolio overview — {data.holdings_count} holdings tracked.</p>
+            <header style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                <LayoutDashboard size={40} style={{ color: 'var(--accent-blue)', filter: 'drop-shadow(0 0 10px rgba(59, 130, 246, 0.4))' }} />
+                <div>
+                    <h1 style={{ margin: 0 }}>Executive Dashboard</h1>
+                    <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>Real-time portfolio overview — {data.holdings_count} holdings tracked.</p>
+                </div>
             </header>
+            <div style={{ height: '3rem' }}></div>
 
             {/* Top Metric Cards */}
             <div className="dashboard-grid">
@@ -944,10 +963,14 @@ export function SectorHeatmap() {
 
     return (
         <>
-            <header>
-                <h1>Sector Heatmap Tracker</h1>
-                <p className="subtitle">Visualizing annual percentage growth of {marketInfo.label} sectors since 2010.</p>
+            <header style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                <Grid size={40} style={{ color: '#8b5cf6', filter: 'drop-shadow(0 0 10px rgba(139, 92, 246, 0.4))' }} />
+                <div>
+                    <h1 style={{ margin: 0 }}>Sector Heatmap Tracker</h1>
+                    <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>Visualizing annual percentage growth of {marketInfo.label} sectors since 2010.</p>
+                </div>
             </header>
+            <div style={{ height: '2.5rem' }}></div>
 
             {/* Market Selector — pill-style segmented control */}
             <div style={{ display: 'flex', justifyContent: 'center', margin: '1.5rem 0' }}>
@@ -1163,10 +1186,14 @@ export function SectorIndices() {
 
     return (
         <>
-            <header>
-                <h1>Sector Indices & Fundamentals</h1>
-                <p className="subtitle">Detailed metrics and 5-Year CAGR for {marketInfo.label} — {filteredData.length} instruments across {sectorFilter === 'All' ? sectors.length - 1 : 1} sector{sectorFilter === 'All' && sectors.length - 1 !== 1 ? 's' : ''}.</p>
+            <header style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                <List size={40} style={{ color: '#3b82f6', filter: 'drop-shadow(0 0 10px rgba(59, 130, 246, 0.4))' }} />
+                <div>
+                    <h1 style={{ margin: 0 }}>Sector Indices & Fundamentals</h1>
+                    <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>Detailed metrics and 5-Year CAGR for {marketInfo.label} — {filteredData.length} instruments across {sectorFilter === 'All' ? sectors.length - 1 : 1} sector{sectorFilter === 'All' && sectors.length - 1 !== 1 ? 's' : ''}.</p>
+                </div>
             </header>
+            <div style={{ height: '2.5rem' }}></div>
 
             {/* Market Selector */}
             <div style={{ display: 'flex', justifyContent: 'center', margin: '1.5rem 0' }}>
@@ -1433,10 +1460,14 @@ export function DebtFunds() {
 
     return (
         <>
-            <header>
-                <h1>Debt Funds & Bond ETFs</h1>
-                <p className="subtitle">Top fixed-income instruments in {marketInfo.label} — NAV, Yield, AUM, and annualized returns.</p>
+            <header style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                <DollarSign size={40} style={{ color: '#10b981', filter: 'drop-shadow(0 0 10px rgba(16, 185, 129, 0.4))' }} />
+                <div>
+                    <h1 style={{ margin: 0 }}>Debt Funds & Bond ETFs</h1>
+                    <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>Top fixed-income instruments in {marketInfo.label} — NAV, Yield, AUM, and annualized returns.</p>
+                </div>
             </header>
+            <div style={{ height: '2.5rem' }}></div>
 
             {/* Market Selector */}
             <div style={{ display: 'flex', justifyContent: 'center', margin: '1.5rem 0' }}>
@@ -1587,10 +1618,14 @@ export function MacroDashboard() {
 
     return (
         <>
-            <header>
-                <h1>Market Overview</h1>
-                <p className="subtitle">Global indices, volatility gauges, treasury yields, and dollar index — live from Yahoo Finance.</p>
+            <header style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                <Globe size={40} style={{ color: '#3b82f6', filter: 'drop-shadow(0 0 10px rgba(59, 130, 246, 0.4))' }} />
+                <div>
+                    <h1 style={{ margin: 0 }}>Market Overview</h1>
+                    <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>Global indices, volatility gauges, treasury yields, and dollar index — live from Yahoo Finance.</p>
+                </div>
             </header>
+            <div style={{ height: '2.5rem' }}></div>
 
             {loading ? (
                 <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
@@ -1682,10 +1717,14 @@ export function CommodityTracker() {
 
     return (
         <>
-            <header>
-                <h1>Commodity Tracker</h1>
-                <p className="subtitle">Live prices for metals, energy, and agriculture commodities with historical returns.</p>
+            <header style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                <Package size={40} style={{ color: '#f59e0b', filter: 'drop-shadow(0 0 10px rgba(245, 158, 11, 0.4))' }} />
+                <div>
+                    <h1 style={{ margin: 0 }}>Commodity Tracker</h1>
+                    <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>Live prices for metals, energy, and agriculture commodities with historical returns.</p>
+                </div>
             </header>
+            <div style={{ height: '2.5rem' }}></div>
 
             {loading ? (
                 <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
@@ -1749,10 +1788,14 @@ export function ForexMonitor() {
 
     return (
         <>
-            <header>
-                <h1>Forex Monitor</h1>
-                <p className="subtitle">Major currency pairs — rates, daily change, and 1-month trend lines.</p>
+            <header style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                <ArrowLeftRight size={40} style={{ color: '#10b981', filter: 'drop-shadow(0 0 10px rgba(16, 185, 129, 0.4))' }} />
+                <div>
+                    <h1 style={{ margin: 0 }}>Forex Monitor</h1>
+                    <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>Major currency pairs — rates, daily change, and 1-month trend lines.</p>
+                </div>
             </header>
+            <div style={{ height: '2.5rem' }}></div>
 
             <div className="glass-panel" style={{ padding: '1.5rem' }}>
                 {loading ? (
@@ -1832,10 +1875,14 @@ export function CorrelationMatrix() {
 
     return (
         <>
-            <header>
-                <h1>Correlation Matrix</h1>
-                <p className="subtitle">Cross-asset correlation based on 1-year daily returns — stocks, bonds, commodities, crypto, and currencies.</p>
+            <header style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                <Grid3X3 size={40} style={{ color: '#3b82f6', filter: 'drop-shadow(0 0 10px rgba(59, 130, 246, 0.4))' }} />
+                <div>
+                    <h1 style={{ margin: 0 }}>Correlation Matrix</h1>
+                    <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>Cross-asset correlation based on 1-year daily returns — stocks, bonds, commodities, crypto, and currencies.</p>
+                </div>
             </header>
+            <div style={{ height: '2.5rem' }}></div>
 
             <div className="glass-panel" style={{ padding: '1.5rem', overflow: 'auto' }}>
                 {loading ? (
@@ -1951,10 +1998,14 @@ export function Nifty500Heatmap() {
 
     return (
         <>
-            <header>
-                <h1>Nifty 500 — Sector Performance</h1>
-                <p className="subtitle">Annual returns for 15 Nifty sectoral indices, sorted by growth. Color intensity reflects magnitude.</p>
+            <header style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                <IndianRupee size={40} style={{ color: '#f59e0b', filter: 'drop-shadow(0 0 10px rgba(245, 158, 11, 0.4))' }} />
+                <div>
+                    <h1 style={{ margin: 0 }}>Nifty 500 — Sector Performance</h1>
+                    <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>Annual returns for 15 Nifty sectoral indices, sorted by growth. Color intensity reflects magnitude.</p>
+                </div>
             </header>
+            <div style={{ height: '2.5rem' }}></div>
 
             {/* Sort Pills */}
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
@@ -2057,7 +2108,7 @@ export function Nifty500Heatmap() {
 // ======================== ANALYSIS PAGES ========================
 
 // Shared analysis card renderer
-function AnalysisPage({ title, subtitle, philosophy, sortKey, sortDesc = true, explanationFn }) {
+function AnalysisPage({ title, subtitle, philosophy, sortKey, sortDesc = true, explanationFn, Icon, iconColor = 'var(--accent-blue)' }) {
     const [region, setRegion] = useState('US')
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
@@ -2087,10 +2138,14 @@ function AnalysisPage({ title, subtitle, philosophy, sortKey, sortDesc = true, e
 
     return (
         <>
-            <header>
-                <h1>{title}</h1>
-                <p className="subtitle">{subtitle}</p>
+            <header style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                {Icon && <Icon size={40} style={{ color: iconColor, filter: `drop-shadow(0 0 10px ${iconColor}40)` }} />}
+                <div>
+                    <h1 style={{ margin: 0 }}>{title}</h1>
+                    <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>{subtitle}</p>
+                </div>
             </header>
+            <div style={{ height: '2.5rem' }}></div> {/* Spacer for subtitle margin removal */}
 
             {/* Philosophy Box */}
             <div className="glass-panel" style={{ padding: '1.2rem 1.5rem', marginBottom: '1.5rem', borderLeft: '4px solid var(--accent-blue)' }}>
@@ -2241,10 +2296,14 @@ export function IndiaMutualFunds() {
 
     return (
         <>
-            <header>
-                <h1>🇮🇳 India Mutual Funds</h1>
-                <p className="subtitle">Institutional-grade research dashboard for Indian investors. Track performance, risk, and fundamentals.</p>
+            <header style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                <IndianRupee size={40} style={{ color: '#f59e0b', filter: 'drop-shadow(0 0 10px rgba(245, 158, 11, 0.4))' }} />
+                <div>
+                    <h1 style={{ margin: 0 }}>India Mutual Funds</h1>
+                    <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>Institutional-grade research dashboard for Indian investors. Track performance, risk, and fundamentals.</p>
+                </div>
             </header>
+            <div style={{ height: '2.5rem' }}></div>
 
             {/* Filters */}
             <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
@@ -2410,11 +2469,13 @@ export function MomentumAnalysis() {
     }
 
     return <AnalysisPage
-        title="📈 Momentum Leaders"
+        title="Momentum Leaders"
         subtitle="ETFs with the strongest recent price momentum — riding the trend."
         philosophy="Momentum investing follows the principle that assets that have been going up tend to keep going up. This analysis ranks ETFs by their combined 3-month and 1-year returns — identifying the ones with the strongest current trajectory. Think of it as 'buying what's hot.' While riskier than other strategies, momentum can capture powerful trends early."
         sortKey="return_3m" sortDesc={true}
         explanationFn={explain}
+        Icon={Zap}
+        iconColor="#f59e0b"
     />
 }
 
@@ -2433,11 +2494,13 @@ export function GrowthAnalysis() {
     }
 
     return <AnalysisPage
-        title="🚀 Growth Champions"
+        title="Growth Champions"
         subtitle="ETFs with the highest long-term compounding — the power of CAGR."
         philosophy="Growth investing focuses on assets that have delivered the highest compound annual growth rate (CAGR) over 5 years. Unlike momentum (which looks at recent trends), this analysis rewards consistency over time. A high CAGR means your money doubles faster. For example, a 15% CAGR doubles your money in ~5 years, while a 7% CAGR takes ~10 years."
         sortKey="cagr_5y" sortDesc={true}
         explanationFn={explain}
+        Icon={Rocket}
+        iconColor="#3b82f6"
     />
 }
 
@@ -2459,11 +2522,13 @@ export function RiskAdjustedAnalysis() {
     }
 
     return <AnalysisPage
-        title="🛡️ Risk-Adjusted Returns"
+        title="Risk-Adjusted Returns"
         subtitle="ETFs that give you the best bang for your buck per unit of risk — the Sharpe Ratio ranking."
         philosophy="The Sharpe Ratio measures how much excess return you get for each unit of risk (volatility). A Sharpe of 1.0+ is excellent — it means every 1% of risk translates to 1%+ of extra return above risk-free rates. This analysis is ideal for investors who want growth but don't want to ride a roller-coaster. It answers: 'Which ETFs give the smoothest path to profit?'"
         sortKey="sharpe" sortDesc={true}
         explanationFn={explain}
+        Icon={Shield}
+        iconColor="#10b981"
     />
 }
 
@@ -2482,11 +2547,13 @@ export function IncomeAnalysis() {
     }
 
     return <AnalysisPage
-        title="💰 Income & Dividends"
+        title="Income & Dividends"
         subtitle="ETFs that pay you to hold them — sorted by dividend yield."
         philosophy="Income investing prioritizes regular cash payouts (dividends) over price growth. These ETFs pay you a percentage of your investment back each quarter or year as income. This approach is ideal for retirees, people building passive income, or those who want their portfolio to 'pay rent.' A $100,000 investment in a 4% yield ETF generates $4,000/year without selling anything."
         sortKey="dividend_yield" sortDesc={true}
         explanationFn={explain}
+        Icon={Wallet}
+        iconColor="#f59e0b"
     />
 }
 
@@ -2509,10 +2576,14 @@ export function MarketNews() {
 
     return (
         <>
-            <header>
-                <h1>📰 Market News</h1>
-                <p className="subtitle">Latest headlines from major financial sources affecting markets and sectors.</p>
+            <header style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                <Newspaper size={40} style={{ color: '#3b82f6', filter: 'drop-shadow(0 0 10px rgba(59, 130, 246, 0.4))' }} />
+                <div>
+                    <h1 style={{ margin: 0 }}>Market News</h1>
+                    <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>Latest headlines from major financial sources affecting markets and sectors.</p>
+                </div>
             </header>
+            <div style={{ height: '2.5rem' }}></div>
 
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
                 {['US', 'EU', 'India'].map(r => (
@@ -2602,7 +2673,14 @@ export function AllocationAdvisor() {
 
     if (loading) return (
         <>
-            <header><h1>🎯 Allocation Advisor</h1><p className="subtitle">Loading allocation data...</p></header>
+            <header style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                <PieChartIcon size={40} style={{ color: '#8b5cf6', filter: 'drop-shadow(0 0 10px rgba(139, 92, 246, 0.4))' }} />
+                <div>
+                    <h1 style={{ margin: 0 }}>Allocation Advisor</h1>
+                    <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>Loading allocation data...</p>
+                </div>
+            </header>
+            <div style={{ height: '3rem' }}></div>
             <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                 <h3>Analyzing portfolio allocations...</h3>
             </div>
@@ -2618,10 +2696,14 @@ export function AllocationAdvisor() {
 
     return (
         <>
-            <header>
-                <h1>🎯 Allocation Advisor</h1>
-                <p className="subtitle">Optimal portfolio allocation based on strategies from the world's best investors.</p>
+            <header style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                <PieChartIcon size={40} style={{ color: '#8b5cf6', filter: 'drop-shadow(0 0 10px rgba(139, 92, 246, 0.4))' }} />
+                <div>
+                    <h1 style={{ margin: 0 }}>Allocation Advisor</h1>
+                    <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>Optimal portfolio allocation based on strategies from the world's best investors.</p>
+                </div>
             </header>
+            <div style={{ height: '2.5rem' }}></div>
 
             {/* Pie Charts Section */}
             <div style={{ display: 'grid', gridTemplateColumns: data?.has_portfolio ? '1fr 1fr' : '1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
@@ -2777,7 +2859,14 @@ export function BacktestView() {
 
     if (loading) return (
         <>
-            <header><h1>Portfolio Backtest</h1><p className="subtitle">Simulating historical performance...</p></header>
+            <header style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                <Activity size={40} style={{ color: '#10b981', filter: 'drop-shadow(0 0 10px rgba(16, 185, 129, 0.4))' }} />
+                <div>
+                    <h1 style={{ margin: 0 }}>Portfolio Backtest</h1>
+                    <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>Simulating historical performance...</p>
+                </div>
+            </header>
+            <div style={{ height: '3rem' }}></div>
             <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                 <Rocket size={48} className="animate-pulse" style={{ color: 'var(--accent-blue)', opacity: 0.5, marginBottom: '1rem' }} />
                 <h2>Running simulation...</h2>
@@ -2788,7 +2877,14 @@ export function BacktestView() {
 
     if (!data || !data.history || data.history.length === 0) return (
         <>
-            <header><h1>Portfolio Backtest</h1><p className="subtitle">Historical simulation.</p></header>
+            <header style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                <Activity size={40} style={{ color: '#10b981', filter: 'drop-shadow(0 0 10px rgba(16, 185, 129, 0.4))' }} />
+                <div>
+                    <h1 style={{ margin: 0 }}>Portfolio Backtest</h1>
+                    <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>Historical simulation.</p>
+                </div>
+            </header>
+            <div style={{ height: '3rem' }}></div>
             <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center' }}>
                 <AlertTriangle size={48} style={{ color: 'var(--text-muted)', opacity: 0.4, marginBottom: '1rem' }} />
                 <h2 style={{ fontSize: '1.3rem', marginBottom: '0.5rem' }}>No data to backtest</h2>
@@ -2800,9 +2896,12 @@ export function BacktestView() {
     return (
         <>
             <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                    <h1>Portfolio Backtest</h1>
-                    <p className="subtitle">Simulation of current holdings with SIP + Lump-sum contributions.</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                    <Activity size={40} style={{ color: '#10b981', filter: 'drop-shadow(0 0 10px rgba(16, 185, 129, 0.4))' }} />
+                    <div>
+                        <h1 style={{ margin: 0 }}>Portfolio Backtest</h1>
+                        <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>Simulation of current holdings with SIP + Lump-sum contributions.</p>
+                    </div>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.3rem', borderRadius: '8px' }}>
                     {[1, 3, 5, 10].map(p => (
@@ -2959,7 +3058,14 @@ export function LegendaryPortfolios() {
 
     if (loading) return (
         <>
-            <header><h1>Legendary Portfolios</h1><p className="subtitle">Loading strategies...</p></header>
+            <header style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                <Crown size={40} style={{ color: '#fbbf24', filter: 'drop-shadow(0 0 10px rgba(251, 191, 36, 0.4))' }} />
+                <div>
+                    <h1 style={{ margin: 0 }}>Legendary Portfolios</h1>
+                    <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>Loading strategies...</p>
+                </div>
+            </header>
+            <div style={{ height: '3rem' }}></div>
             <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                 <h3>Gathering investor allocations...</h3>
             </div>
@@ -2968,7 +3074,14 @@ export function LegendaryPortfolios() {
 
     if (!data) return (
         <>
-            <header><h1>Legendary Portfolios</h1><p className="subtitle">Global Investment Strategies</p></header>
+            <header style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                <Crown size={40} style={{ color: '#fbbf24', filter: 'drop-shadow(0 0 10px rgba(251, 191, 36, 0.4))' }} />
+                <div>
+                    <h1 style={{ margin: 0 }}>Legendary Portfolios</h1>
+                    <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>Global Investment Strategies</p>
+                </div>
+            </header>
+            <div style={{ height: '3rem' }}></div>
             <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                 <h3>Failed to load portfolio data. Make sure backend is running.</h3>
             </div>
@@ -2983,10 +3096,14 @@ export function LegendaryPortfolios() {
 
     return (
         <>
-            <header>
-                <h1>👑 Legendary Portfolios</h1>
-                <p className="subtitle">Replicate the exact asset allocations of the world's greatest investors.</p>
+            <header style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                <Crown size={40} style={{ color: '#fbbf24', filter: 'drop-shadow(0 0 10px rgba(251, 191, 36, 0.4))' }} />
+                <div>
+                    <h1 style={{ margin: 0 }}>Legendary Portfolios</h1>
+                    <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>Replicate the exact asset allocations of the world's greatest investors.</p>
+                </div>
             </header>
+            <div style={{ height: '2.5rem' }}></div>
 
             {/* Region Tabs */}
             <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border-glass)', paddingBottom: '1rem', marginBottom: '2rem' }}>
@@ -3054,103 +3171,58 @@ export function LegendaryPortfolios() {
                                 </div>
                             </div>
 
-                            {/* Main Content Grid (Chart + Allocation Table) */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: '2rem', alignItems: 'start' }}>
+                            {/* Main Content Grid (Pie Chart + Allocation Details) */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '3rem', alignItems: 'center', background: 'rgba(0,0,0,0.2)', padding: '2rem', borderRadius: '16px', border: '1px solid var(--border-glass)' }}>
                                 
-                                {/* Historical Line Chart */}
-                                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-glass)' }}>
-                                    <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', color: 'white' }}>5-Year Historical Growth ($10,000 Invested)</h3>
-                                    {chartData.length > 0 ? (
-                                        <div style={{ height: '300px', width: '100%' }}>
-                                            <ResponsiveContainer>
-                                                <LineChart data={chartData}>
-                                                    <XAxis 
-                                                        dataKey="date" 
-                                                        tickFormatter={(val) => val.substring(0, 4)} 
-                                                        stroke="var(--text-muted)" 
-                                                        minTickGap={30}
-                                                    />
-                                                    <YAxis 
-                                                        domain={['auto', 'auto']} 
-                                                        stroke="var(--text-muted)"
-                                                        tickFormatter={(val) => `$${(val/1000).toFixed(1)}k`}
-                                                    />
-                                                    <Tooltip 
-                                                        formatter={(value) => [`$${value.toLocaleString()}`, 'Portfolio Value']}
-                                                        contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }} 
-                                                        itemStyle={{ color: '#fff' }}
-                                                    />
-                                                    <Line 
-                                                        type="monotone" 
-                                                        dataKey="value" 
-                                                        stroke="var(--accent-blue)" 
-                                                        strokeWidth={2} 
-                                                        dot={false}
-                                                        activeDot={{ r: 6, fill: 'white' }}
-                                                    />
-                                                </LineChart>
-                                            </ResponsiveContainer>
-                                        </div>
-                                    ) : (
-                                        <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
-                                            Not enough historical data available.
-                                        </div>
-                                    )}
+                                {/* Pie Chart Visualization */}
+                                <div style={{ height: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie 
+                                                data={pieData} 
+                                                cx="50%" 
+                                                cy="50%" 
+                                                innerRadius={60} 
+                                                outerRadius={100} 
+                                                dataKey="value"
+                                                stroke="rgba(255,255,255,0.05)"
+                                                paddingAngle={3}
+                                                isAnimationActive={false}
+                                            >
+                                                {pieData.map((entry, i) => (
+                                                    <Cell key={`cell-${i}`} fill={pieColors[i % pieColors.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip 
+                                                formatter={(value) => `${value}%`}
+                                                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }} 
+                                                itemStyle={{ color: '#fff' }}
+                                            />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                    <div style={{ marginTop: '1rem', color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center' }}>
+                                        Allocation Breakdown
+                                    </div>
                                 </div>
 
-                                {/* Current Allocation Details */}
+                                {/* Diversification Listing */}
                                 <div>
-                                    <div style={{ height: '200px', marginBottom: '1rem' }}>
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <PieChart>
-                                                <Pie 
-                                                    data={pieData} 
-                                                    cx="50%" 
-                                                    cy="50%" 
-                                                    innerRadius={50} 
-                                                    outerRadius={80} 
-                                                    dataKey="value"
-                                                    stroke="rgba(255,255,255,0.05)"
-                                                    paddingAngle={2}
-                                                    isAnimationActive={false}
-                                                >
-                                                    {pieData.map((entry, i) => (
-                                                        <Cell key={`cell-${i}`} fill={pieColors[i % pieColors.length]} />
-                                                    ))}
-                                                </Pie>
-                                                <Tooltip 
-                                                    formatter={(value) => `${value}%`}
-                                                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }} 
-                                                    itemStyle={{ color: '#fff' }}
-                                                />
-                                            </PieChart>
-                                        </ResponsiveContainer>
-                                    </div>
-
-                                    <div className="data-table-container">
-                                        <table style={{ fontSize: '0.9rem' }}>
-                                            <thead>
-                                                <tr>
-                                                    <th style={{ padding: '0.8rem' }}>Asset Class</th>
-                                                    <th style={{ padding: '0.8rem' }}>Ticker</th>
-                                                    <th style={{ padding: '0.8rem' }}>Wt%</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {pf.allocation.map((item, i) => (
-                                                    <tr key={i}>
-                                                        <td style={{ padding: '0.8rem' }}>
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                                <div style={{ width: 8, height: 8, borderRadius: '50%', background: pieColors[i % pieColors.length] }}></div>
-                                                                <span style={{ fontWeight: 500 }}>{item.asset}</span>
-                                                            </div>
-                                                        </td>
-                                                        <td style={{ padding: '0.8rem' }}><span className="rank-badge" style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem' }}>{item.ticker}</span></td>
-                                                        <td style={{ padding: '0.8rem', fontWeight: 700 }}>{item.weight}%</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                    <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', color: 'white', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem' }}>Portfolio Diversification</h3>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                        {pf.allocation.map((item, i) => (
+                                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.8rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                                                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: pieColors[i % pieColors.length] }}></div>
+                                                    <div>
+                                                        <div style={{ fontWeight: 600, color: 'white', fontSize: '1rem' }}>{item.asset}</div>
+                                                        <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{item.ticker}</div>
+                                                    </div>
+                                                </div>
+                                                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-blue)' }}>
+                                                    {item.weight}%
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
 
@@ -3158,7 +3230,6 @@ export function LegendaryPortfolios() {
                         </div>
                     )
                 })}
-            </div>
             </div>
         </>
     )
