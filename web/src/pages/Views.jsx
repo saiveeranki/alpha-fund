@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { NavLink } from 'react-router-dom'
 import { ErrorBoundary } from '../App'
 import { 
     LayoutDashboard, TrendingUp, AlertTriangle, PlayCircle, Grid, Rocket, Zap, Shield, Wallet, 
@@ -1051,7 +1052,15 @@ export function Portfolio() {
                     <h1>My Portfolio</h1>
                     <p className="subtitle">Track your investments — add ETFs, mutual funds, or indices. Set lump-sum and monthly SIP amounts.</p>
                 </div>
-                <DownloadButton label="Export PDF Portfolio" />
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <NavLink to="/backtest" className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', padding: '0.6rem 1.2rem', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', fontWeight: 600, border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                        <Rocket size={18} /> Run Backtest
+                    </NavLink>
+                    <NavLink to="/risk" className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', padding: '0.6rem 1.2rem', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-blue)', fontWeight: 600, border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                        <Shield size={18} /> Risk Analysis
+                    </NavLink>
+                    <DownloadButton label="Export PDF Portfolio" />
+                </div>
             </header>
 
             {/* Summary Bar */}
@@ -3616,7 +3625,7 @@ export function AllocationAdvisor() {
 
                 {optLoading ? (
                     <div style={{ padding: '2rem', textAlign: 'center' }}><div className="loader"></div></div>
-                ) : optData ? (
+                ) : (optData && Array.isArray(optData)) ? (
                     <div className="data-table-container">
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>

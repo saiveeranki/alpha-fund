@@ -428,8 +428,14 @@ async def get_behavioral_metrics(age: int = 25, sip: float = 500):
 async def get_ai_optimization():
     """Returns value-tilted portfolio rebalancing suggestions."""
     portfolio = data_manager.get_portfolio_data()
-    scan_data = scanner.scan_all_regions().get("US", {}).get("top_candidates", [])
-    return optimizer.get_optimal_allocation(portfolio, scan_data)
+    
+    # Aggregate contrarian signals from all regions for the optimizer
+    all_scans = scanner.scan_all_regions()
+    all_candidates = []
+    for region_data in all_scans.values():
+        all_candidates.extend(region_data.get("top_candidates", []))
+        
+    return optimizer.get_optimal_allocation(portfolio, all_candidates)
 
 @app.get("/api/ai/stress-test")
 async def get_crisis_shocks():

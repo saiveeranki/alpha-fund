@@ -2,6 +2,7 @@ from data.database import SessionLocal, Asset, FinancialStatementCache, TickerRe
 from data.providers.yfinance_provider import YFinanceProvider
 from data.models import FinancialMetrics
 import pandas as pd
+import numpy as np
 import json
 from datetime import date, datetime, timedelta
 import concurrent.futures
@@ -1644,18 +1645,26 @@ class DataManager:
 
         for h in holdings:
             try:
-                t = yf_mod.Ticker(h.ticker)
-                info = t.info or {}
-                hist_1m = t.history(period="1mo")
-                if hist_1m.empty:
+                # Use delta-cached history from DataManager instead of direct yfinance hits
+                hist_1y_list = self.get_historical_prices(h.ticker, "1y")
+                if not hist_1y_list or len(hist_1y_list) < 2:
                     continue
 
-                current = float(hist_1m['Close'].iloc[-1])
-                prev = float(hist_1m['Close'].iloc[-2]) if len(hist_1m) > 1 else current
+                prices_df = pd.DataFrame(hist_1y_list)
+                prices_df['date'] = pd.to_datetime(prices_df['date'])
+                prices_df.set_index('date', inplace=True)
+                
+                # Daily P&L metrics (using last 1 month for context)
+                current = float(prices_df['close'].iloc[-1])
+                prev = float(prices_df['close'].iloc[-2]) if len(prices_df) > 1 else current
                 day_change_pct = round((current - prev) / prev * 100, 2) if prev else 0
 
                 invested = h.lump_sum or 0
                 total_invested += invested
+
+                # Fetch metadata
+                t = yf_mod.Ticker(h.ticker)
+                info = t.info or {}
 
                 # Categorize holding
                 quote_type = info.get("quoteType", "").upper()
@@ -1674,20 +1683,20 @@ class DataManager:
 
                 allocation_map[cat] = allocation_map.get(cat, 0) + invested
 
-                # Get long-term metrics for scatter plot
+                # Long-term risk/reward metrics for scatter plot
                 volatility = None
                 ret_1y = None
-                try:
-                    hist_1y = t.history(period="1y")
-                    if not hist_1y.empty:
-                        daily_ret = hist_1y['Close'].pct_change().dropna()
-                        volatility = round(float(daily_ret.std() * np.sqrt(252) * 100), 2)
-                        s = float(hist_1y['Close'].iloc[0])
-                        e = float(hist_1y['Close'].iloc[-1])
-                        if s > 0:
-                            ret_1y = round((e - s) / s * 100, 2)
-                except:
-                    pass
+                
+                prices_1y = prices_df['close']
+                daily_ret = prices_1y.pct_change().dropna()
+                if not daily_ret.empty:
+                    volatility = round(float(daily_ret.std() * np.sqrt(252) * 100), 2)
+                    s = float(prices_1y.iloc[0])
+                    e = float(prices_1y.iloc[-1])
+                    if s > 0:
+                        ret_1y = round((e - s) / s * 100, 2)
+
+                # Fallback to currency from info
 
                 currency = info.get("currency", h.currency or "USD")
                 performers.append({
@@ -1747,6 +1756,7 @@ class DataManager:
             "holdings_count": len(performers),
             "top_performers": top_3,
             "worst_performers": worst_3,
+            "performers": performers, # Added full list for Risk/Reward scatter
             "allocation": allocation,
             "market_pulse": self._get_market_pulse(),
             "health_score": health["overall_score"],
@@ -1850,13 +1860,20 @@ class DataManager:
 
         for h in holdings:
             try:
-                t = yf_mod.Ticker(h.ticker)
-                info = t.info or {}
-                hist = t.history(period="1y")
-                if hist is not None and len(hist) > 20:
-                    returns_dict[h.ticker] = hist['Close'].pct_change().dropna()
+                # Use delta-cached history
+                hist_1y_list = self.get_historical_prices(h.ticker, "1y")
+                if hist_1y_list and len(hist_1y_list) > 20:
+                    prices_df = pd.DataFrame(hist_1y_list)
+                    prices_df['date'] = pd.to_datetime(prices_df['date'])
+                    prices_df.set_index('date', inplace=True)
+                    returns_dict[h.ticker] = prices_df['close'].pct_change().dropna()
+                    
                     w = (h.lump_sum or 0) / total_invested if total_invested > 0 else 1.0 / len(holdings)
                     weights[h.ticker] = w
+                    
+                    # Fetch sectoral metadata once
+                    t = yf_mod.Ticker(h.ticker)
+                    info = t.info or {}
                     sectors[h.ticker] = info.get("sector", info.get("category", "Other")) or "Other"
             except Exception as e:
                 print(f"[Risk] Error for {h.ticker}: {e}")
@@ -1868,11 +1885,16 @@ class DataManager:
                 "holdings_count": len(holdings),
             }
 
-        # Fetch S&P 500 returns
+        # Fetch S&P 500 returns (cached)
         try:
-            sp500 = yf_mod.Ticker("^GSPC")
-            sp_hist = sp500.history(period="1y")
-            sp_returns = sp_hist['Close'].pct_change().dropna() if sp_hist is not None and len(sp_hist) > 20 else None
+            sp_hist_list = self.get_historical_prices("^GSPC", "1y")
+            if sp_hist_list and len(sp_hist_list) > 20:
+                sp_df = pd.DataFrame(sp_hist_list)
+                sp_df['date'] = pd.to_datetime(sp_df['date'])
+                sp_df.set_index('date', inplace=True)
+                sp_returns = sp_df['close'].pct_change().dropna()
+            else:
+                sp_returns = None
         except Exception:
             sp_returns = None
 
@@ -2056,6 +2078,12 @@ class DataManager:
                 sparkline = hist_1m['Close'].tail(20).tolist()
                 currency = info.get("currency", h.currency or "USD")
 
+                sector = info.get("sector", info.get("category", "Broad Market")) or "Broad Market"
+                
+                # Approximate value for risk weighting
+                current_value = (h.lump_sum or 0) + (h.monthly_sip or 0) * 12 # 1 year approximation for weighting
+                if current_value == 0: current_value = 1000 # Default weight if no investment entered
+
                 results.append({
                     "ticker": h.ticker,
                     "name": h.name,
@@ -2069,6 +2097,8 @@ class DataManager:
                     "sparkline": [round(s, 2) for s in sparkline],
                     "lump_sum": h.lump_sum or 0,
                     "monthly_sip": h.monthly_sip or 0,
+                    "value": current_value,
+                    "sector": sector,
                     "added_date": h.added_date.isoformat() if h.added_date else None,
                 })
 
