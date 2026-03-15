@@ -1,4 +1,5 @@
 import yfinance as yf
+import pandas as pd
 from datetime import date
 from typing import Optional
 from data.providers.base_provider import BaseFinancialProvider
@@ -101,7 +102,16 @@ class YFinanceProvider(BaseFinancialProvider):
                 return None
                 
             # Resample to annual frequency, taking the last close price of each year
-            annual_prices = hist['Close'].resample('YE' if hasattr(pd, 'Series') else 'Y').last()
+            # 'YE' is the new alias for 'Y' in recent pandas, but 'Y' or 'A' or 'A-DEC' are more compatible
+            try:
+                annual_prices = hist['Close'].resample('YE').last()
+            except ValueError:
+                # Fallback to 'Y' or 'A' for older pandas or certain configurations
+                try:
+                    annual_prices = hist['Close'].resample('Y').last()
+                except ValueError:
+                    annual_prices = hist['Close'].resample('A').last()
+
             returns = annual_prices.pct_change().dropna()
             
             # Format index to string year

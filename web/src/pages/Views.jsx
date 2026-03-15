@@ -1477,16 +1477,16 @@ export function RiskAnalysis() {
 
                 {stressLoading ? (
                     <div style={{ padding: '2rem', textAlign: 'center' }}><div className="loader"></div></div>
-                ) : stressData ? (
+                ) : stressData && Array.isArray(stressData.scenarios) ? (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
-                        {stressData.map((scenario) => (
-                            <div key={scenario.scenario} style={{ 
+                        {stressData.scenarios.map((scenario) => (
+                            <div key={scenario.scenario_id} style={{ 
                                 background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-glass)',
                                 padding: '1.5rem', borderRadius: '15px'
                             }}>
-                                <div style={{ fontWeight: 800, fontSize: '0.9rem', marginBottom: '1rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{scenario.scenario}</div>
+                                <div style={{ fontWeight: 800, fontSize: '0.9rem', marginBottom: '1rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{scenario.name}</div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1rem' }}>
-                                    <span style={{ fontSize: '2rem', fontWeight: 900, color: '#ef4444' }}>{scenario.drawdown}%</span>
+                                    <span style={{ fontSize: '2rem', fontWeight: 900, color: '#ef4444' }}>{scenario.expected_impact}%</span>
                                     <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 700 }}>Recovery: {scenario.recovery}</span>
                                 </div>
                                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>{scenario.impact_narrative}</p>

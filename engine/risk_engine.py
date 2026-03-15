@@ -10,6 +10,8 @@ class RiskEngine:
     CRISIS_DATA = {
         "2008_FINANCIAL_CRISIS": {
             "name": "2008 Global Financial Crisis",
+            "recovery": "4.5 Years",
+            "impact_narrative": "Systemic collapse triggered by subprime mortgage crisis. Financials and Real Estate faced near-total wipes, while defensive sectors like Consumer Staples showed resilience.",
             "shocks": {
                 "Technology": -0.45,
                 "Financials": -0.65,
@@ -22,6 +24,8 @@ class RiskEngine:
         },
         "2000_DOTCOM_BUBBLE": {
             "name": "2000 Dot-com Bubble",
+            "recovery": "7.2 Years",
+            "impact_narrative": "Speculative mania in internet stocks imploded. Tech-heavy portfolios lost over 70% of value, but old-economy energy and materials sectors provided a safe haven.",
             "shocks": {
                 "Technology": -0.75,
                 "Financials": -0.15,
@@ -32,6 +36,8 @@ class RiskEngine:
         },
         "2020_COVID_CRASH": {
             "name": "2020 COVID-19 Crash",
+            "recovery": "5 Months",
+            "impact_narrative": "Sharpest drop in history due to global lockdowns. Digital transformation stocks (Tech) rebounded instantly, while physical-world energy and travel sectors lagged significantly.",
             "shocks": {
                 "Technology": -0.25,
                 "Financials": -0.40,
@@ -69,6 +75,8 @@ class RiskEngine:
             results.append({
                 "scenario_id": key,
                 "name": scenario['name'],
+                "recovery": scenario['recovery'],
+                "impact_narrative": scenario['impact_narrative'],
                 "expected_impact": round(expected_loss * 100, 2),
                 "potential_value_loss": round(total_market_value * abs(expected_loss), 2)
             })

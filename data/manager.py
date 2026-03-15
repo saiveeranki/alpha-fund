@@ -15,7 +15,6 @@ class DataManager:
         # We start with just YFinance, but can add FMP, AlphaVantage here later
         self.yfinance = YFinanceProvider()
 
-    # --- Centralized Sector Registry ---
     SECTOR_REGISTRY = {
         "US": [
             {"name": "Technology", "tickers": ["XLK", "VGT", "IYW", "FTEC", "IXN"], "color": "#3b82f6"},
@@ -57,7 +56,7 @@ class DataManager:
             {"name": "Bank", "tickers": ["^NSEBANK", "HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS", "AXISBANK.NS"], "color": "#10b981"},
             {"name": "Consumer Durables", "tickers": ["^CNXCONSUM", "TITAN.NS", "TRENT.NS", "PAGEIND.NS", "JUBLFOOD.NS"], "color": "#a855f7"},
             {"name": "Financial Services", "tickers": ["NIFTY_FIN_SERVICE.NS", "BAJFINANCE.NS", "RELIANCE.NS", "CHOLAFIN.NS", "MUTHOOTFIN.NS"], "color": "#22d3ee"},
-            {"name": "MNC", "tickers": ["^CNXMNC", "HUL.NS", "NESTLEIND.NS", "ABB.NS", "SIEMENS.NS"], "color": "#fbbf24"},
+            {"name": "MNC", "tickers": ["^CNXMNC", "HINDUNILVR.NS", "NESTLEIND.NS", "ABB.NS", "SIEMENS.NS"], "color": "#fbbf24"},
             {"name": "Services", "tickers": ["^CNXSERVICE", "HDFCBANK.NS", "INFY.NS", "ADANIPORTS.NS", "ZOMATO.NS"], "color": "#84cc16"},
         ]
     }
@@ -276,9 +275,10 @@ class DataManager:
         Fetches annual returns for pre-defined sector ETFs.
         Supports US, EU, and India markets.
         """
-        SECTORS = self.SECTOR_REGISTRY.get(market.upper(), self.SECTOR_REGISTRY["US"])
+        market_key = market.upper()
+        SECTORS = self.SECTOR_REGISTRY.get(market_key, self.SECTOR_REGISTRY["US"])
         
-        cache_key = f"sector_returns_{market}_{start_year}"
+        cache_key = f"sector_returns_{market_key}_{start_year}"
         cached = self._get_cached_data(cache_key)
         if cached:
             print(f"[DataManager] Loaded Sector Returns ({market}) from DB Cache.")
@@ -320,13 +320,14 @@ class DataManager:
         Fetches detailed financial metrics (Magic Formula + CAGR) for sector ETFs/indices.
         Supports US, EU, and India markets.
         """
-        cache_key = f"sector_metrics_{market}"
+        market_key = market.upper()
+        cache_key = f"sector_metrics_{market_key}"
         cached = self._get_cached_data(cache_key)
         if cached:
-            print(f"[DataManager] Loaded Sector Metrics ({market}) from DB Cache.")
+            print(f"[DataManager] Loaded Sector Metrics ({market_key}) from DB Cache.")
             return cached
 
-        SECTORS = self.SECTOR_REGISTRY.get(market.upper(), self.SECTOR_REGISTRY["US"])
+        SECTORS = self.SECTOR_REGISTRY.get(market_key, self.SECTOR_REGISTRY["US"])
         
         def fetch_sector_ticker_data(sector, ticker, market):
             try:
@@ -335,7 +336,7 @@ class DataManager:
                     ticker=ticker,
                     name=f"{sector['name']} ({ticker})",
                     sector=sector["name"],
-                    market=market if market != "India" else "GLOBAL"
+                    market="GLOBAL" # Always GLOBAL for fundamentals now to avoid confusion
                 )
                 
                 # Calculate 5-Year CAGR and fetch Sparkline (1mo)
