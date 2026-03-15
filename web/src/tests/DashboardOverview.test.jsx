@@ -13,9 +13,20 @@ describe('DashboardOverview Component', () => {
   });
 
   it('renders loading state initially', () => {
-    fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({})
+    fetch.mockImplementation((url) => {
+      if (url.includes('/dashboard')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({})
+        });
+      }
+      if (url.includes('/ai/intel')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => []
+        });
+      }
+      return Promise.reject(new Error('Unknown API'));
     });
     
     render(
@@ -39,9 +50,20 @@ describe('DashboardOverview Component', () => {
       market_pulse: []
     };
 
-    fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockData
+    fetch.mockImplementation((url) => {
+      if (url.includes('/dashboard')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => mockData
+        });
+      }
+      if (url.includes('/ai/intel')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => []
+        });
+      }
+      return Promise.reject(new Error('Unknown API'));
     });
 
     render(

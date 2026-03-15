@@ -5,10 +5,7 @@ import { Sparkline } from '../pages/Views';
 
 describe('Sparkline Component', () => {
   it('renders without crashing', () => {
-    const mockData = [
-        { date: '2023-01-01', close: 100 },
-        { date: '2023-01-02', close: 110 }
-    ];
+    const mockData = [100, 110, 105, 120, 115];
     render(<Sparkline data={mockData} />);
     // Check if the SVG is present
     const svgElement = document.querySelector('svg');
