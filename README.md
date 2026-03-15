@@ -37,11 +37,12 @@ Screens 40+ stocks and ETFs across **US, Europe, India, and Other markets** usin
 
 ---
 
-### Sector Heatmap — Annual Returns Since 2010
+### Sector Heatmaps — Annual Returns Since 2010
 Visual heatmap showing year-by-year percentage returns for **11-15 sectoral indices**, sortable by 5-Year CAGR. Supports US, Europe, and India markets.
 
 ![Sector Heatmap](docs/screenshots/sector_heatmap.png)
 ![India Heatmap](docs/screenshots/india_heatmap.png)
+![Nifty 500 Heatmap](docs/screenshots/nifty500_heatmap.png)
 
 ---
 
@@ -127,6 +128,73 @@ Compares your portfolio allocation against strategies from **Ray Dalio (All Weat
 Mathematical rebalance advisor that suggests **Buy/Sell actions** to move your portfolio closer to the Efficient Frontier, weighted by contrarian signals.
 
 ![Alpha Rebalance](docs/screenshots/alpha_rebalance.png)
+
+---
+
+---
+
+### Portfolio Backtest — Historical Validation
+Run high-performance backtests on your portfolio allocation. Compare your strategy against the S&P 500 with detailed CAGR, Max Drawdown, and volatility metrics.
+
+![Portfolio Backtest](docs/screenshots/backtest.png)
+
+---
+
+### Momentum Analysis — Identifying Trends
+Algorithmic scan for assets with strong price momentum and relative strength. Features custom momentum scores and trend validation.
+
+![Momentum Analysis](docs/screenshots/momentum.png)
+
+---
+
+### Growth Analysis — Revenue & Earnings Expansion
+Deep dive into the fundamental growth drivers of your portfolio. Tracks historical and forecasted revenue/EY expansion.
+
+![Growth Analysis](docs/screenshots/growth.png)
+
+---
+
+### Risk-Adjusted Returns — Sharpe & Sortino Efficiency
+Evaluates performance relative to risk. Features a "Risk vs Reward" scatter plot and rolling efficiency metrics.
+
+![Risk Adjusted Analysis](docs/screenshots/risk_adjusted.png)
+
+---
+
+### Income Analysis — Yield & Cashflow Tracking
+Monitors the yield-generating components of your portfolio. Tracks dividend consistency and fixed-income returns.
+
+![Income Analysis](docs/screenshots/income.png)
+
+---
+
+### Market News — Real-Time Sentiment
+Aggregates critical market headlines and regional news feeds, providing context for price movements.
+
+![Market News](docs/screenshots/market_news.png)
+
+---
+
+### Alpha Academy — Financial Mental Models
+A comprehensive educational suite detailing institutional-grade mental models, jargon dictionaries, and investment philosophies.
+
+![Alpha Academy](docs/screenshots/alpha_academy.png)
+
+---
+
+### Youth Alpha — The Compounding Clock
+Specialized tools for long-term compounders. Visualizes the "SIP Cost of Delay" and the power of starting early.
+
+![Youth Alpha](docs/screenshots/youth_alpha.png)
+
+---
+
+---
+
+### Alpha Guide — Tactical Strategy Manual
+An interactive manual for navigating the platform's advanced quantitative tools and interpreting its AI synthesis.
+
+![Alpha Guide](docs/screenshots/alpha_guide.png)
 
 ---
 
