@@ -55,7 +55,9 @@ class SectorAdvisor:
         macro = self.dm.get_macro_overview()
         vix = 18.0
         if macro:
-            for item in macro:
+            # macro is a dict with 'indices' and 'gauges' lists
+            combined = macro.get('indices', []) + macro.get('gauges', [])
+            for item in combined:
                 if item.get('ticker') == '^VIX':
                     vix = item.get('price', 18.0)
                     break
@@ -80,7 +82,7 @@ class SectorAdvisor:
         """
         Neural Link for Cross-Asset impacts (Commodities, Rates).
         """
-        commodities = self.dm.get_commodity_overview()
+        commodities = self.dm.get_commodities_data()
         oil_trend = "Stable"
         if commodities:
             for c in commodities:

@@ -11,7 +11,11 @@ from engine.scanner import ContrarianScanner
 from engine.advisor import SectorAdvisor
 from engine.intel import InstitutionalIntel
 from engine.briefing import BriefingEngine
+from engine.reporting import ReportGenerator
 from engine.behavioral import BehavioralEngine
+from fastapi.responses import FileResponse
+import tempfile
+import os
 import pandas as pd
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
@@ -46,6 +50,7 @@ advisor = SectorAdvisor(data_manager)
 intel_engine = InstitutionalIntel(data_manager)
 briefing_engine = BriefingEngine(data_manager)
 behavioral_engine = BehavioralEngine(data_manager)
+report_generator = ReportGenerator(data_manager)
 
 # Expanded Global Stock Universe
 GLOBAL_UNIVERSE = [
@@ -431,6 +436,38 @@ async def get_crisis_shocks():
     """Returns detailed historical crisis simulation results."""
     portfolio = data_manager.get_portfolio_data()
     return risk_engine.stress_test(portfolio)
+
+@app.get("/api/report/generate")
+async def generate_institutional_report():
+    """Generates and returns the institutional PDF report."""
+    try:
+        # 1. Gather all necessary data for the report
+        portfolio = data_manager.get_portfolio_data()
+        adv_data = advisor.get_sector_advisor_report("US")
+        scan_data = scanner.scan_all_regions()
+        risk_data = risk_engine.stress_test(portfolio)
+        intel_data = intel_engine.get_filing_summaries()
+        
+        briefing = {
+            "narrative": briefing_engine.generate_daily_briefing(adv_data, scan_data, risk_data, intel_data)
+        }
+        
+        risk_stats = data_manager.get_risk_analysis() # Standard risk metrics
+        
+        # 2. Create temp file for PDF
+        fd, path = tempfile.mkstemp(suffix=".pdf")
+        os.close(fd)
+        
+        # 3. Generate Report
+        report_generator.generate_full_report(path, ai_briefing=briefing, risk_stats=risk_stats)
+        
+        # 4. Return file and ensure cleanup after response
+        filename = f"Alpha_Fund_Intel_{datetime.now().strftime('%Y%m%d')}.pdf"
+        return FileResponse(path, media_type="application/pdf", filename=filename)
+        
+    except Exception as e:
+        print(f"[API] Report generation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

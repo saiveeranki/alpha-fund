@@ -55,7 +55,9 @@ class RiskEngine:
             
         results = []
         total_market_value = sum(h.get('value', 0) for h in holdings)
-        
+        if total_market_value == 0:
+            return {"scenarios": [], "diversification_score": 0}
+            
         for key, scenario in self.CRISIS_DATA.items():
             expected_loss = 0
             for h in holdings:

@@ -19,8 +19,8 @@ jobs:
           
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install fastapi uvicorn yfinance pandas sqlalchemy pydantic pytest httpx
+            python -m pip install --upgrade pip
+            pip install -r requirements.txt
           
       - name: Run backend tests
         run: python -m pytest tests/

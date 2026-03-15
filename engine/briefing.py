@@ -20,7 +20,8 @@ class BriefingEngine:
         macro = self.dm.get_macro_overview()
         vix = 18.0
         if macro:
-            vix = next((i['price'] for i in macro if i['ticker'] == '^VIX'), 18.0)
+            combined = macro.get('indices', []) + macro.get('gauges', [])
+            vix = next((i['price'] for i in combined if i['ticker'] == '^VIX'), 18.0)
             
         if vix > 25:
             market_tone = "Today's market is characterized by elevated volatility. Defensive posturing is recommended."

@@ -4,11 +4,57 @@ import {
     LayoutDashboard, TrendingUp, AlertTriangle, PlayCircle, Grid, Rocket, Zap, Shield, Wallet, 
     Newspaper, PieChart as PieChartIcon, Activity, Crown, IndianRupee, Globe, Package, 
     ArrowLeftRight, Grid3X3, List, DollarSign, X, Users, ShieldAlert, BrainCircuit, Anchor,
-    Settings as SettingsIcon, BarChart as BarChartIcon
+    Settings as SettingsIcon, BarChart as BarChartIcon, FileDown
 } from 'lucide-react'
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, BarChart, Bar, ScatterChart, Scatter } from 'recharts'
 
 const API_BASE = "http://localhost:8001/api"
+
+// --- Global PDF Download Helper ---
+const handleDownloadReport = async (setDownloading) => {
+    try {
+        setDownloading(true);
+        const response = await fetch(`${API_BASE}/report/generate`);
+        if (!response.ok) throw new Error("Failed to generate report");
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Alpha_Fund_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (err) {
+        console.error(err);
+        alert("Report generation failed. Please check the backend.");
+    } finally {
+        setDownloading(false);
+    }
+};
+
+const DownloadButton = ({ label = "Download Report" }) => {
+    const [downloading, setDownloading] = useState(false);
+    return (
+        <button 
+            onClick={() => handleDownloadReport(setDownloading)}
+            disabled={downloading}
+            style={{
+                display: 'flex', alignItems: 'center', gap: '0.6rem',
+                padding: '0.6rem 1.2rem', background: 'rgba(59, 130, 246, 0.15)',
+                color: 'var(--accent-blue)', border: '1px solid var(--accent-blue)', 
+                borderRadius: '12px', fontWeight: 800, fontSize: '0.85rem', 
+                cursor: downloading ? 'wait' : 'pointer',
+                transition: 'all 0.3s ease', backdropFilter: 'blur(10px)'
+            }}
+            onMouseOver={e => e.target.style.background = 'rgba(59, 130, 246, 0.25)'}
+            onMouseOut={e => e.target.style.background = 'rgba(59, 130, 246, 0.15)'}
+        >
+            {downloading ? <div className="loader" style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.1)', borderTop: '2px solid var(--accent-blue)' }}></div> : <FileDown size={18} />}
+            {downloading ? "Generating PDF..." : label}
+        </button>
+    );
+};
 
 // --- Global Context for Ticker Details ---
 export const TickerDetailContext = React.createContext()
@@ -732,14 +778,16 @@ export function DashboardOverview() {
 
     return (
         <>
-            <header style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
-                <LayoutDashboard size={40} style={{ color: 'var(--accent-blue)', filter: 'drop-shadow(0 0 10px rgba(59, 130, 246, 0.4))' }} />
-                <div>
-                    <h1 style={{ margin: 0 }}>Executive Dashboard</h1>
-                    <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>Real-time portfolio overview — {data.holdings_count} holdings tracked.</p>
+            <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '3rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                    <LayoutDashboard size={40} style={{ color: 'var(--accent-blue)', filter: 'drop-shadow(0 0 10px rgba(59, 130, 246, 0.4))' }} />
+                    <div>
+                        <h1 style={{ margin: 0 }}>Executive Dashboard</h1>
+                        <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>Real-time portfolio overview — {data.holdings_count} holdings tracked.</p>
+                    </div>
                 </div>
+                <DownloadButton label="Download Institutional Report" />
             </header>
-            <div style={{ height: '3rem' }}></div>
 
             <ErrorBoundary>
                 <AIMorningBriefing />
@@ -998,9 +1046,12 @@ export function Portfolio() {
 
     return (
         <>
-            <header>
-                <h1>My Portfolio</h1>
-                <p className="subtitle">Track your investments — add ETFs, mutual funds, or indices. Set lump-sum and monthly SIP amounts.</p>
+            <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '3rem' }}>
+                <div>
+                    <h1>My Portfolio</h1>
+                    <p className="subtitle">Track your investments — add ETFs, mutual funds, or indices. Set lump-sum and monthly SIP amounts.</p>
+                </div>
+                <DownloadButton label="Export PDF Portfolio" />
             </header>
 
             {/* Summary Bar */}

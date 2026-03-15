@@ -107,6 +107,13 @@ Compares your portfolio allocation against strategies from **Ray Dalio (All Weat
 
 ---
 
+### Institutional Reporting — Private Intel Reports
+Generate institutional-quality PDF reports for your dashboard and portfolio. Includes Executive Summaries, AI Synthesis, Macro Context, and deep Risk Stress-Testing.
+
+![Reporting Demo](docs/screenshots/reporting_demo.png)
+
+---
+
 ## 🚀 Alpha v2: The 17 Pillars of Intelligence
 
 This update evolves the platform into a "Neural Network" of investment wisdom, integrating philosophies from the world's greatest thinkers:
@@ -206,7 +213,10 @@ The backend exposes **20+ REST API endpoints** via FastAPI. All endpoints return
 
 ## 📡 Data Sources
 
-All market data is sourced from [**Yahoo Finance**](https://finance.yahoo.com/) via the [`yfinance`](https://github.com/ranaroussi/yfinance) Python library (v0.2+). This is the sole data provider.
+All market data is sourced from [**Yahoo Finance**](https://finance.yahoo.com/) via the [`yfinance`](https://github.com/ranaroussi/yfinance) Python library (v0.2+).
++
++> [!IMPORTANT]
++> **Acknowledgement**: This platform would not be possible without the incredible, open-access infrastructure provided by **Yahoo Finance APIs** and the tireless work of the **`yfinance` community**. We are deeply grateful for their contribution to democratizing institutional-grade financial data.
 
 ### What `yfinance` provides:
 

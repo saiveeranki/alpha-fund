@@ -45,7 +45,7 @@ class InstitutionalIntel:
                 "summary": f"Recent filings show active positions in {', '.join(moved['buys'][:3])}. "
                            f"Maintaining a {moved['philosophy']} stance.",
                 "sentiment": "Neutral/Active",
-                "timestamp": datetime.now().strftime('%Y-%m-%Q')
+                "timestamp": datetime.now().strftime('%Y-%m-%d')
             })
         return summaries
 
