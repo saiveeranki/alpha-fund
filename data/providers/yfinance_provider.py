@@ -16,8 +16,8 @@ class YFinanceProvider(BaseFinancialProvider):
             
             # Use proxy timeouts if possible, or just rely on the library's internal behavior
             # Ticker.info and statements can be slow; we wrap the whole block
-            income_stmt = ticker.get_income_stmt(proxy=None)
-            balance_sheet = ticker.get_balance_sheet(proxy=None)
+            income_stmt = ticker.get_income_stmt()
+            balance_sheet = ticker.get_balance_sheet()
             info = ticker.info # This remains a property in many versions
             
             # EBIT
