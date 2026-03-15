@@ -38,9 +38,10 @@ Screens 40+ stocks and ETFs across **US, Europe, India, and Other markets** usin
 ---
 
 ### Sector Heatmap — Annual Returns Since 2010
-Visual heatmap showing year-by-year percentage returns for **11 GICS sectors**, sortable by 5-Year CAGR. Supports US, Europe, and India markets.
+Visual heatmap showing year-by-year percentage returns for **11-15 sectoral indices**, sortable by 5-Year CAGR. Supports US, Europe, and India markets.
 
 ![Sector Heatmap](docs/screenshots/sector_heatmap.png)
+![India Heatmap](docs/screenshots/india_heatmap.png)
 
 ---
 
@@ -73,9 +74,24 @@ Tracks **8 major currency pairs** (EUR/USD, GBP/USD, USD/JPY, USD/INR, etc.) wit
 ---
 
 ### Risk & Exposure Analysis
-Computes portfolio-level risk metrics: **Beta vs S&P 500, Sharpe Ratio (1Y), Max Drawdown, and Annualized Volatility**. Includes sector exposure donut chart and a holdings correlation mini-matrix.
+Computes portfolio-level risk metrics: **Beta vs S&P 500, Sharpe Ratio (1Y), Max Drawdown, and Annualized Volatility**. Includes sector exposure donut chart, a holdings correlation mini-matrix, and advanced **Rolling Portfolio Correlation (30D)**.
 
 ![Risk Analysis](docs/screenshots/risk_analysis.png)
+![Rolling Correlation](docs/screenshots/rolling_correlation.png)
+
+---
+
+### Risk vs Reward — Efficiency Profile
+Scatter plot mapping every portfolio holding's **1-Year Return vs Annualized Volatility**. Identify high-efficiency assets in the top-left "Alpha Zone."
+
+![Risk Reward Profile](docs/screenshots/risk_reward.png)
+
+---
+
+### Crisis Simulator — Historical Stress Testing
+Simulates portfolio performance during extreme market regimes like the **2008 Global Financial Crisis, 2020 COVID Crash, and 1987 Black Monday.**
+
+![Crisis Simulator](docs/screenshots/crisis_simulator.png)
 
 ---
 
@@ -101,9 +117,16 @@ Replicate the exact asset allocations of the world's greatest investors. Feature
 ---
 
 ### Allocation Advisor — Strategies from the Masters
-Compares your portfolio allocation against strategies from **Ray Dalio (All Weather), Warren Buffett (Berkshire Focused), Harry Browne (Permanent), David Swensen (Yale), and more**. Shows recommended average allocation weighted across these legendary approaches.
+Compares your portfolio allocation against strategies from **Ray Dalio (All Weather), Warren Buffett (Berkshire Focused), Harry Browne (Permanent), David Swensen (Yale), and more**.
 
 ![Allocation Advisor](docs/screenshots/allocation.png)
+
+---
+
+### Alpha Rebalance — Mathematical Realignment
+Mathematical rebalance advisor that suggests **Buy/Sell actions** to move your portfolio closer to the Efficient Frontier, weighted by contrarian signals.
+
+![Alpha Rebalance](docs/screenshots/alpha_rebalance.png)
 
 ---
 
