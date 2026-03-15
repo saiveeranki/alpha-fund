@@ -930,18 +930,18 @@ export function DashboardOverview() {
 
                 {intelLoading ? (
                     <div style={{ padding: '2rem', textAlign: 'center' }}><div className="loader"></div></div>
-                ) : intelData ? (
+                ) : intelData && Array.isArray(intelData.summaries) ? (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                        {intelData.map((item, idx) => (
+                        {intelData.summaries.map((item, idx) => (
                             <div key={idx} style={{ 
                                 background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
                                 padding: '1.5rem', borderRadius: '15px'
                             }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                                     <div style={{ fontWeight: 800, fontSize: '0.8rem', color: 'var(--accent-blue)', textTransform: 'uppercase' }}>{item.manager}</div>
-                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{item.date}</span>
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{item.timestamp || item.date}</span>
                                 </div>
-                                <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.8rem', color: '#e2e8f0' }}>{item.headline}</div>
+                                <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.8rem', color: '#e2e8f0' }}>{item.headline || item.manager}</div>
                                 <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.5', marginBottom: '1rem' }}>{item.summary}</p>
                                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                                     {(item.tickers || []).map(t => (

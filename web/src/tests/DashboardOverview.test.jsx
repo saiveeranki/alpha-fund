@@ -23,7 +23,7 @@ describe('DashboardOverview Component', () => {
       if (url.includes('/ai/intel')) {
         return Promise.resolve({
           ok: true,
-          json: async () => []
+          json: async () => ({ summaries: [] })
         });
       }
       return Promise.reject(new Error('Unknown API'));
@@ -60,7 +60,7 @@ describe('DashboardOverview Component', () => {
       if (url.includes('/ai/intel')) {
         return Promise.resolve({
           ok: true,
-          json: async () => []
+          json: async () => ({ summaries: [] })
         });
       }
       return Promise.reject(new Error('Unknown API'));
