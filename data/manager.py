@@ -15,6 +15,53 @@ class DataManager:
         # We start with just YFinance, but can add FMP, AlphaVantage here later
         self.yfinance = YFinanceProvider()
 
+    # --- Centralized Sector Registry ---
+    SECTOR_REGISTRY = {
+        "US": [
+            {"name": "Technology", "tickers": ["XLK", "VGT", "IYW", "FTEC", "IXN"], "color": "#3b82f6"},
+            {"name": "Financials", "tickers": ["XLF", "VFH", "IYF", "FNCL", "IXG"], "color": "#10b981"},
+            {"name": "Healthcare", "tickers": ["XLV", "VHT", "IYH", "FHLC", "IXJ"], "color": "#ef4444"},
+            {"name": "Cons. Discr.", "tickers": ["XLY", "VCR", "IYC", "FDIS", "RXI"], "color": "#f59e0b"},
+            {"name": "Cons. Staples", "tickers": ["XLP", "VDC", "IYK", "FSTA", "KXI"], "color": "#8b5cf6"},
+            {"name": "Energy", "tickers": ["XLE", "VDE", "IYE", "FENY", "IXC"], "color": "#14b8a6"},
+            {"name": "Materials", "tickers": ["XLB", "VAW", "IYM", "FMAT", "MXI"], "color": "#f97316"},
+            {"name": "Industrials", "tickers": ["XLI", "VIS", "IYJ", "FIDU", "EXI"], "color": "#64748b"},
+            {"name": "Utilities", "tickers": ["XLU", "VPU", "IDU", "FUTY", "JXI"], "color": "#06b6d4"},
+            {"name": "Real Estate", "tickers": ["VNQ", "XLRE", "USRT", "FREL", "SCHH"], "color": "#ec4899"},
+            {"name": "Communication", "tickers": ["XLC", "VOX", "IXP", "FCOM", "IYZ"], "color": "#84cc16"},
+        ],
+        "EU": [
+            {"name": "Technology", "tickers": ["EXV8.DE", "XDWT.DE", "STK.PA", "TNOW.L", "IUIT.L"], "color": "#3b82f6"},
+            {"name": "Banks", "tickers": ["EXV1.DE", "EXXW.DE", "EXI5.DE", "BNKE.L", "BNP.PA"], "color": "#10b981"},
+            {"name": "Healthcare", "tickers": ["EXV4.DE", "EXHE.DE", "IUHC.L", "STW.PA", "HEAL.L"], "color": "#ef4444"},
+            {"name": "Autos & Parts", "tickers": ["EXV5.DE", "EXHB.DE", "BMW.DE", "VOW3.DE", "MBG.DE"], "color": "#f59e0b"},
+            {"name": "Food & Bev.", "tickers": ["EXV7.DE", "EXHC.DE", "IUFS.L", "FOO.PA", "ULVR.L"], "color": "#8b5cf6"},
+            {"name": "Oil & Gas", "tickers": ["EXV6.DE", "EXHF.DE", "SHEL.L", "TTE.PA", "ENRG.L"], "color": "#14b8a6"},
+            {"name": "Basic Res.", "tickers": ["EXV3.DE", "EXHD.DE", "RIO.L", "GLEN.L", "BHP.L"], "color": "#f97316"},
+            {"name": "Industrials", "tickers": ["EXV2.DE", "SIE.DE", "ABB.ST", "PRIJ.L", "C500.L"], "color": "#64748b"},
+            {"name": "Utilities", "tickers": ["EXV9.DE", "ENEL.MI", "IBE.MC", "ENGI.PA", "NG.L"], "color": "#06b6d4"},
+            {"name": "Real Estate", "tickers": ["IQQP.DE", "VNA.DE", "LEG.DE", "SBRY.L", "INGA.AS"], "color": "#ec4899"},
+            {"name": "Telecom", "tickers": ["EXH8.DE", "DTE.DE", "TEF.MC", "KPN.AS", "SPYE.L"], "color": "#84cc16"},
+        ],
+        "INDIA": [
+            {"name": "IT", "tickers": ["^CNXIT", "TCS.NS", "INFY.NS", "WIPRO.NS", "HCLTECH.NS"], "color": "#3b82f6"},
+            {"name": "Pharma", "tickers": ["^CNXPHARMA", "SUNPHARMA.NS", "DRREDDY.NS", "CIPLA.NS", "DIVISLAB.NS"], "color": "#ef4444"},
+            {"name": "Auto", "tickers": ["^CNXAUTO", "MARUTI.NS", "M&M.NS", "BAJAJ-AUTO.NS", "EICHERMOT.NS"], "color": "#f59e0b"},
+            {"name": "Metal", "tickers": ["^CNXMETAL", "TATASTEEL.NS", "HINDALCO.NS", "JSWSTEEL.NS", "VEDL.NS"], "color": "#a8a29e"},
+            {"name": "FMCG", "tickers": ["^CNXFMCG", "HINDUNILVR.NS", "ITC.NS", "NESTLEIND.NS", "DABUR.NS"], "color": "#f97316"},
+            {"name": "Realty", "tickers": ["^CNXREALTY", "DLF.NS", "GODREJPROP.NS", "OBEROIRLTY.NS", "PRESTIGE.NS"], "color": "#ec4899"},
+            {"name": "Infrastructure", "tickers": ["^CNXINFRA", "LT.NS", "ADANIPORTS.NS", "IRB.NS", "LTIM.NS"], "color": "#8b5cf6"},
+            {"name": "Media", "tickers": ["^CNXMEDIA", "ZEEL.NS", "PVRINOX.NS", "SUNTV.NS", "NETWORK18.NS"], "color": "#64748b"},
+            {"name": "PSE", "tickers": ["^CNXPSE", "NTPC.NS", "POWERGRID.NS", "TATAPOWER.NS", "NHPC.NS"], "color": "#06b6d4"},
+            {"name": "Energy", "tickers": ["^CNXENERGY", "RELIANCE.NS", "ONGC.NS", "BPCL.NS", "IOC.NS"], "color": "#14b8a6"},
+            {"name": "Bank", "tickers": ["^NSEBANK", "HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS", "AXISBANK.NS"], "color": "#10b981"},
+            {"name": "Consumer Durables", "tickers": ["^CNXCONSUM", "TITAN.NS", "TRENT.NS", "PAGEIND.NS", "JUBLFOOD.NS"], "color": "#a855f7"},
+            {"name": "Financial Services", "tickers": ["NIFTY_FIN_SERVICE.NS", "BAJFINANCE.NS", "RELIANCE.NS", "CHOLAFIN.NS", "MUTHOOTFIN.NS"], "color": "#22d3ee"},
+            {"name": "MNC", "tickers": ["^CNXMNC", "HUL.NS", "NESTLEIND.NS", "ABB.NS", "SIEMENS.NS"], "color": "#fbbf24"},
+            {"name": "Services", "tickers": ["^CNXSERVICE", "HDFCBANK.NS", "INFY.NS", "ADANIPORTS.NS", "ZOMATO.NS"], "color": "#84cc16"},
+        ]
+    }
+
     def _get_cached_data(self, key: str) -> any:
         """Helper to get data from local DB cache if not expired."""
         db: Session = SessionLocal()
@@ -229,59 +276,7 @@ class DataManager:
         Fetches annual returns for pre-defined sector ETFs.
         Supports US, EU, and India markets.
         """
-        US_SECTORS = [
-            {"name": "Technology", "tickers": ["XLK", "VGT", "IYW", "FTEC", "IXN"], "color": "#3b82f6"},
-            {"name": "Financials", "tickers": ["XLF", "VFH", "IYF", "FNCL", "IXG"], "color": "#10b981"},
-            {"name": "Healthcare", "tickers": ["XLV", "VHT", "IYH", "FHLC", "IXJ"], "color": "#ef4444"},
-            {"name": "Cons. Discr.", "tickers": ["XLY", "VCR", "IYC", "FDIS", "RXI"], "color": "#f59e0b"},
-            {"name": "Cons. Staples", "tickers": ["XLP", "VDC", "IYK", "FSTA", "KXI"], "color": "#8b5cf6"},
-            {"name": "Energy", "tickers": ["XLE", "VDE", "IYE", "FENY", "IXC"], "color": "#14b8a6"},
-            {"name": "Materials", "tickers": ["XLB", "VAW", "IYM", "FMAT", "MXI"], "color": "#f97316"},
-            {"name": "Industrials", "tickers": ["XLI", "VIS", "IYJ", "FIDU", "EXI"], "color": "#64748b"},
-            {"name": "Utilities", "tickers": ["XLU", "VPU", "IDU", "FUTY", "JXI"], "color": "#06b6d4"},
-            {"name": "Real Estate", "tickers": ["VNQ", "XLRE", "USRT", "FREL", "SCHH"], "color": "#ec4899"},
-            {"name": "Communication", "tickers": ["XLC", "VOX", "IXP", "FCOM", "IYZ"], "color": "#84cc16"},
-        ]
-        
-        # iShares STOXX Europe 600 sub-sector ETFs (Xetra)
-        EU_SECTORS = [
-            {"name": "Technology", "tickers": ["EXV8.DE"], "color": "#3b82f6"},
-            {"name": "Banks", "tickers": ["EXV1.DE"], "color": "#10b981"},
-            {"name": "Healthcare", "tickers": ["EXV4.DE"], "color": "#ef4444"},
-            {"name": "Autos & Parts", "tickers": ["EXV5.DE"], "color": "#f59e0b"},
-            {"name": "Food & Bev.", "tickers": ["EXV7.DE"], "color": "#8b5cf6"},
-            {"name": "Oil & Gas", "tickers": ["EXV6.DE"], "color": "#14b8a6"},
-            {"name": "Basic Res.", "tickers": ["EXV3.DE"], "color": "#f97316"},
-            {"name": "Industrials", "tickers": ["EXV2.DE"], "color": "#64748b"},
-            {"name": "Utilities", "tickers": ["EXV9.DE"], "color": "#06b6d4"},
-            {"name": "Real Estate", "tickers": ["IQQP.DE"], "color": "#ec4899"},
-            {"name": "Telecom", "tickers": ["EXH8.DE"], "color": "#84cc16"},
-        ]
-        
-        # Indian Nifty / BSE Sector Indices (matching FundsIndia reference chart)
-        # Tickers verified against Yahoo Finance availability
-        # Note: Most indices start mid-2011, so 2010 data is sparse
-        # Indian Nifty / BSE Sector Indices (matching Nifty 500 Heatmap)
-        INDIA_SECTORS = [
-            {"name": "IT", "tickers": ["^CNXIT"], "color": "#3b82f6"},
-            {"name": "Pharma", "tickers": ["^CNXPHARMA"], "color": "#ef4444"},
-            {"name": "Auto", "tickers": ["^CNXAUTO"], "color": "#f59e0b"},
-            {"name": "Metal", "tickers": ["^CNXMETAL"], "color": "#a8a29e"},
-            {"name": "FMCG", "tickers": ["^CNXFMCG"], "color": "#f97316"},
-            {"name": "Realty", "tickers": ["^CNXREALTY"], "color": "#ec4899"},
-            {"name": "Infrastructure", "tickers": ["^CNXINFRA"], "color": "#8b5cf6"},
-            {"name": "Media", "tickers": ["^CNXMEDIA"], "color": "#64748b"},
-            {"name": "PSE", "tickers": ["^CNXPSE"], "color": "#06b6d4"},
-            {"name": "Energy", "tickers": ["^CNXENERGY"], "color": "#14b8a6"},
-            {"name": "Bank", "tickers": ["^NSEBANK"], "color": "#10b981"},
-            {"name": "Consumer Durables", "tickers": ["^CNXCONSUM"], "color": "#a855f7"},
-            {"name": "Financial Services", "tickers": ["NIFTY_FIN_SERVICE.NS"], "color": "#22d3ee"},
-            {"name": "MNC", "tickers": ["^CNXMNC"], "color": "#fbbf24"},
-            {"name": "Services", "tickers": ["^CNXSERVICE"], "color": "#84cc16"},
-        ]
-        
-        market_map = {"US": US_SECTORS, "EU": EU_SECTORS, "India": INDIA_SECTORS}
-        SECTORS = market_map.get(market, US_SECTORS)
+        SECTORS = self.SECTOR_REGISTRY.get(market.upper(), self.SECTOR_REGISTRY["US"])
         
         cache_key = f"sector_returns_{market}_{start_year}"
         cached = self._get_cached_data(cache_key)
@@ -331,56 +326,7 @@ class DataManager:
             print(f"[DataManager] Loaded Sector Metrics ({market}) from DB Cache.")
             return cached
 
-        US_SECTORS = [
-            {"name": "Technology", "tickers": ["XLK", "VGT", "IYW", "FTEC", "IXN"], "color": "#3b82f6"},
-            {"name": "Financials", "tickers": ["XLF", "VFH", "IYF", "FNCL", "IXG"], "color": "#10b981"},
-            {"name": "Healthcare", "tickers": ["XLV", "VHT", "IYH", "FHLC", "IXJ"], "color": "#ef4444"},
-            {"name": "Cons. Discr.", "tickers": ["XLY", "VCR", "IYC", "FDIS", "RXI"], "color": "#f59e0b"},
-            {"name": "Cons. Staples", "tickers": ["XLP", "VDC", "IYK", "FSTA", "KXI"], "color": "#8b5cf6"},
-            {"name": "Energy", "tickers": ["XLE", "VDE", "IYE", "FENY", "IXC"], "color": "#14b8a6"},
-            {"name": "Materials", "tickers": ["XLB", "VAW", "IYM", "FMAT", "MXI"], "color": "#f97316"},
-            {"name": "Industrials", "tickers": ["XLI", "VIS", "IYJ", "FIDU", "EXI"], "color": "#64748b"},
-            {"name": "Utilities", "tickers": ["XLU", "VPU", "IDU", "FUTY", "JXI"], "color": "#06b6d4"},
-            {"name": "Real Estate", "tickers": ["VNQ", "XLRE", "USRT", "FREL", "SCHH"], "color": "#ec4899"},
-            {"name": "Communication", "tickers": ["XLC", "VOX", "IXP", "FCOM", "IYZ"], "color": "#84cc16"},
-        ]
-        
-        # European sector ETFs (iShares STOXX 600) + Xtrackers + major blue-chips
-        EU_SECTORS = [
-            {"name": "Technology", "tickers": ["EXV8.DE", "XDWT.DE", "STK.PA", "TNOW.L", "IUIT.L"], "color": "#3b82f6"},
-            {"name": "Banks", "tickers": ["EXV1.DE", "EXXW.DE", "EXI5.DE", "BNKE.L", "BNP.PA"], "color": "#10b981"},
-            {"name": "Healthcare", "tickers": ["EXV4.DE", "EXHE.DE", "IUHC.L", "STW.PA", "HEAL.L"], "color": "#ef4444"},
-            {"name": "Autos & Parts", "tickers": ["EXV5.DE", "EXHB.DE", "BMW.DE", "VOW3.DE", "MBG.DE"], "color": "#f59e0b"},
-            {"name": "Food & Bev.", "tickers": ["EXV7.DE", "EXHC.DE", "IUFS.L", "FOO.PA", "ULVR.L"], "color": "#8b5cf6"},
-            {"name": "Oil & Gas", "tickers": ["EXV6.DE", "EXHF.DE", "SHEL.L", "TTE.PA", "ENRG.L"], "color": "#14b8a6"},
-            {"name": "Basic Res.", "tickers": ["EXV3.DE", "EXHD.DE", "RIO.L", "GLEN.L", "BHP.L"], "color": "#f97316"},
-            {"name": "Industrials", "tickers": ["EXV2.DE", "SIE.DE", "ABB.ST", "PRIJ.L", "C500.L"], "color": "#64748b"},
-            {"name": "Utilities", "tickers": ["EXV9.DE", "ENEL.MI", "IBE.MC", "ENGI.PA", "NG.L"], "color": "#06b6d4"},
-            {"name": "Real Estate", "tickers": ["IQQP.DE", "VNA.DE", "LEG.DE", "SBRY.L", "INGA.AS"], "color": "#ec4899"},
-            {"name": "Telecom", "tickers": ["EXH8.DE", "DTE.DE", "TEF.MC", "KPN.AS", "SPYE.L"], "color": "#84cc16"},
-        ]
-        
-        # Indian Nifty sector indices + top blue-chip stocks per sector
-        INDIA_SECTORS = [
-            {"name": "IT", "tickers": ["^CNXIT", "TCS.NS", "INFY.NS", "WIPRO.NS", "HCLTECH.NS"], "color": "#3b82f6"},
-            {"name": "Pharma", "tickers": ["^CNXPHARMA", "SUNPHARMA.NS", "DRREDDY.NS", "CIPLA.NS", "DIVISLAB.NS"], "color": "#ef4444"},
-            {"name": "Auto", "tickers": ["^CNXAUTO", "MARUTI.NS", "M&M.NS", "BAJAJ-AUTO.NS", "EICHERMOT.NS"], "color": "#f59e0b"},
-            {"name": "Metal", "tickers": ["^CNXMETAL", "TATASTEEL.NS", "HINDALCO.NS", "JSWSTEEL.NS", "VEDL.NS"], "color": "#a8a29e"},
-            {"name": "FMCG", "tickers": ["^CNXFMCG", "HINDUNILVR.NS", "ITC.NS", "NESTLEIND.NS", "DABUR.NS"], "color": "#f97316"},
-            {"name": "Realty", "tickers": ["^CNXREALTY", "DLF.NS", "GODREJPROP.NS", "OBEROIRLTY.NS", "PRESTIGE.NS"], "color": "#ec4899"},
-            {"name": "Infrastructure", "tickers": ["^CNXINFRA", "LT.NS", "ADANIPORTS.NS", "IRB.NS", "LTIM.NS"], "color": "#8b5cf6"},
-            {"name": "Media", "tickers": ["^CNXMEDIA", "ZEEL.NS", "PVRINOX.NS", "SUNTV.NS", "NETWORK18.NS"], "color": "#64748b"},
-            {"name": "PSE", "tickers": ["^CNXPSE", "NTPC.NS", "POWERGRID.NS", "TATAPOWER.NS", "NHPC.NS"], "color": "#06b6d4"},
-            {"name": "Energy", "tickers": ["^CNXENERGY", "RELIANCE.NS", "ONGC.NS", "BPCL.NS", "IOC.NS"], "color": "#14b8a6"},
-            {"name": "Bank", "tickers": ["^NSEBANK", "HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS", "AXISBANK.NS"], "color": "#10b981"},
-            {"name": "Consumer Durables", "tickers": ["^CNXCONSUM", "TITAN.NS", "TRENT.NS", "PAGEIND.NS", "JUBLFOOD.NS"], "color": "#a855f7"},
-            {"name": "Financial Services", "tickers": ["NIFTY_FIN_SERVICE.NS", "BAJFINANCE.NS", "RELIANCE.NS", "CHOLAFIN.NS", "MUTHOOTFIN.NS"], "color": "#22d3ee"},
-            {"name": "MNC", "tickers": ["^CNXMNC", "HUL.NS", "NESTLEIND.NS", "ABB.NS", "SIEMENS.NS"], "color": "#fbbf24"},
-            {"name": "Services", "tickers": ["^CNXSERVICE", "HDFCBANK.NS", "INFY.NS", "ADANIPORTS.NS", "ZOMATO.NS"], "color": "#84cc16"},
-        ]
-        
-        market_map = {"US": US_SECTORS, "EU": EU_SECTORS, "India": INDIA_SECTORS}
-        SECTORS = market_map.get(market, US_SECTORS)
+        SECTORS = self.SECTOR_REGISTRY.get(market.upper(), self.SECTOR_REGISTRY["US"])
         
         def fetch_sector_ticker_data(sector, ticker, market):
             try:
@@ -1021,29 +967,15 @@ class DataManager:
         from datetime import datetime
         import concurrent.futures
 
-        NIFTY_SECTORS = [
-            {"name": "IT", "ticker": "^CNXIT", "color": "#3b82f6"},
-            {"name": "Pharma", "ticker": "^CNXPHARMA", "color": "#ef4444"},
-            {"name": "Auto", "ticker": "^CNXAUTO", "color": "#f59e0b"},
-            {"name": "Metal", "ticker": "^CNXMETAL", "color": "#a8a29e"},
-            {"name": "FMCG", "ticker": "^CNXFMCG", "color": "#f97316"},
-            {"name": "Realty", "ticker": "^CNXREALTY", "color": "#ec4899"},
-            {"name": "Infrastructure", "ticker": "^CNXINFRA", "color": "#8b5cf6"},
-            {"name": "Media", "ticker": "^CNXMEDIA", "color": "#64748b"},
-            {"name": "PSE", "ticker": "^CNXPSE", "color": "#06b6d4"},
-            {"name": "Energy", "ticker": "^CNXENERGY", "color": "#14b8a6"},
-            {"name": "Bank", "ticker": "^NSEBANK", "color": "#10b981"},
-            {"name": "Consumer Durables", "ticker": "^CNXCONSUM", "color": "#a855f7"},
-            {"name": "Financial Services", "ticker": "NIFTY_FIN_SERVICE.NS", "color": "#22d3ee"},
-            {"name": "MNC", "ticker": "^CNXMNC", "color": "#fbbf24"},
-            {"name": "Services", "ticker": "^CNXSERVICE", "color": "#84cc16"},
-        ]
+        NIFTY_SECTORS = self.SECTOR_REGISTRY["INDIA"]
 
         current_year = datetime.now().year
         
         def fetch_sector_data(sector):
             try:
-                t = yf_mod.Ticker(sector["ticker"])
+                # Use the primary ticker (first in list) for index performance
+                primary_ticker = sector["tickers"][0]
+                t = yf_mod.Ticker(primary_ticker)
                 hist = t.history(period="max")
                 
                 if hist.empty or len(hist) < 10:
@@ -1090,7 +1022,7 @@ class DataManager:
 
                 return {
                     "sector": sector["name"],
-                    "ticker": sector["ticker"],
+                    "ticker": primary_ticker,
                     "color": sector["color"],
                     "price": current_price,
                     "return_1y": return_1y,

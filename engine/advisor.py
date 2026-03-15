@@ -25,11 +25,7 @@ class SectorAdvisor:
                 {"name": "Energy", "ticker": "XLE"},
                 {"name": "Consumer Discretionary", "ticker": "XLY"}
             ],
-            "INDIA": [
-                {"name": "Nifty Auto", "ticker": "NIFTY_AUTO.NS"},
-                {"name": "Nifty Bank", "ticker": "NIFTY_BANK.NS"},
-                {"name": "Nifty IT", "ticker": "NIFTY_IT.NS"}
-            ]
+            "INDIA": [{"name": s["name"], "ticker": s["tickers"][0]} for s in self.dm.SECTOR_REGISTRY["INDIA"]]
         }
         
         target_sectors = sectors.get(filter_region, sectors["US"])
