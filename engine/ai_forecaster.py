@@ -41,8 +41,9 @@ class AIForecaster:
         macro = self.dm.get_macro_overview()
         vix = 18.0  # Default
         if macro:
-            for item in macro:
-                if item.get('ticker') == '^VIX':
+            all_macro = macro.get('indices', []) + macro.get('gauges', [])
+            for item in all_macro:
+                if isinstance(item, dict) and item.get('ticker') == '^VIX':
                     vix = item.get('price', 18.0)
                     break
         
@@ -79,11 +80,19 @@ class AIForecaster:
         annual_growth = (p50[-1] / last_price) ** (365/forecast_days) - 1
         years_to_double = 72 / (annual_growth * 100) if annual_growth > 0.01 else "N/A (> 72 years)"
         
+        # 9. Confidence Score Calculation (Heuristic based on news and volatility)
+        news_count = sentiment_report.get('item_count', 0)
+        vol_impact = max(0, 1 - (sigma_adjusted * 2)) # Lower vol = Higher confidence
+        base_confidence = 75.0
+        news_bonus = min(15.0, news_count * 2)
+        confidence_score = round(base_confidence + (vol_impact * 5.0) + news_bonus, 1)
+        confidence_score = min(98.5, max(65.0, confidence_score)) # Caps
+
         return {
             "ticker": ticker,
             "last_price": round(last_price, 2),
-            "forecast": [
-                {"date": d, "low": round(float(l), 2), "mid": round(float(m), 2), "high": round(float(h), 2)}
+            "cones": [
+                {"date": d, "lower": round(float(l), 2), "mean": round(float(m), 2), "upper": round(float(h), 2)}
                 for d, l, m, h in zip(projection_dates, p10, p50, p90)
             ],
             "metrics": {
@@ -93,7 +102,8 @@ class AIForecaster:
                 "years_to_double": years_to_double
             },
             "sentiment": sentiment_report,
-            "narrative": narrative
+            "narrative": narrative,
+            "confidence_score": confidence_score
         }
 
     def _generate_narrative(self, ticker: str, current: float, target: float, vol: float, sentiment: dict) -> str:

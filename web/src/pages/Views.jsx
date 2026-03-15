@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { LayoutDashboard, TrendingUp, AlertTriangle, PlayCircle, Grid, Rocket, Zap, Shield, Wallet, Newspaper, PieChart as PieChartIcon, Activity, Crown, IndianRupee, Globe, Package, ArrowLeftRight, Grid3X3, List, DollarSign } from 'lucide-react'
+import { ErrorBoundary } from '../App'
+import { 
+    LayoutDashboard, TrendingUp, AlertTriangle, PlayCircle, Grid, Rocket, Zap, Shield, Wallet, 
+    Newspaper, PieChart as PieChartIcon, Activity, Crown, IndianRupee, Globe, Package, 
+    ArrowLeftRight, Grid3X3, List, DollarSign, X, Users, ShieldAlert, BrainCircuit, Anchor,
+    Settings as SettingsIcon, BarChart as BarChartIcon
+} from 'lucide-react'
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, BarChart, Bar, ScatterChart, Scatter } from 'recharts'
-import { X } from 'lucide-react'
 
 const API_BASE = "http://localhost:8001/api"
 
@@ -34,12 +39,17 @@ export const useTickerDetail = () => React.useContext(TickerDetailContext)
 
 function TickerDetailModal() {
     const { activeTicker, isOpen, closeTicker } = useTickerDetail()
+    const [activeTab, setActiveTab] = useState('summary')
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(false)
+    const [forecast, setForecast] = useState(null)
+    const [forecastLoading, setForecastLoading] = useState(false)
 
     useEffect(() => {
         if (activeTicker && isOpen) {
             setLoading(true)
+            setForecast(null)
+            setActiveTab('summary')
             fetch(`${API_BASE}/ticker/${activeTicker}/detail`)
                 .then(res => res.json())
                 .then(d => {
@@ -52,6 +62,16 @@ function TickerDetailModal() {
                 })
         }
     }, [activeTicker, isOpen])
+
+    useEffect(() => {
+        if (activeTicker && isOpen && activeTab === 'forecast' && !forecast) {
+            setForecastLoading(true)
+            fetch(`${API_BASE}/ai/forecast/${activeTicker}`)
+                .then(res => res.json())
+                .then(d => { setForecast(d); setForecastLoading(false) })
+                .catch(() => setForecastLoading(false))
+        }
+    }, [activeTicker, isOpen, activeTab])
 
     if (!isOpen) return null
 
@@ -82,99 +102,166 @@ function TickerDetailModal() {
                     </div>
                 ) : data ? (
                     <>
-                        <header style={{ marginBottom: '2rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.3rem' }}>
-                                <h2 style={{ fontSize: '2.5rem', margin: 0, fontWeight: 800, color: 'white' }}>{data.ticker}</h2>
-                                <span style={{ 
-                                    background: 'var(--accent-blue)', padding: '0.3rem 0.8rem', borderRadius: '6px', fontSize: '0.9rem', fontWeight: 600 
-                                }}>{data.cagr_5y}% 5Y CAGR</span>
+                        <header style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.3rem' }}>
+                                    <h2 style={{ fontSize: '2.5rem', margin: 0, fontWeight: 800, color: 'white' }}>{data.ticker}</h2>
+                                    <span style={{ 
+                                        background: 'var(--accent-blue)', padding: '0.3rem 0.8rem', borderRadius: '6px', fontSize: '0.9rem', fontWeight: 600 
+                                    }}>{data.cagr_5y}% 5Y CAGR</span>
+                                </div>
+                                <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', margin: 0 }}>{data.name || 'Institutional Asset View'}</p>
                             </div>
-                            <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', margin: 0 }}>{data.name || 'Institutional Asset View'}</p>
+                            
+                            <div style={{ textAlign: 'right' }}>
+                                <div style={{ 
+                                    background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)',
+                                    padding: '0.8rem 1.2rem', borderRadius: '12px', color: 'var(--profit-green)'
+                                }}>
+                                    <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem' }}>Rule of 72</div>
+                                    <div style={{ fontWeight: 800, fontSize: '1.1rem' }}>Doubles in {data.years_to_double || Math.round(72 / (parseFloat(data.cagr_5y) || 1))} Years</div>
+                                </div>
+                            </div>
                         </header>
 
+                        {/* Tabs */}
+                        <div style={{ display: 'flex', gap: '2rem', borderBottom: '1px solid var(--border-glass)', marginBottom: '2rem' }}>
+                            {['summary', 'forecast'].map(tab => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setActiveTab(tab)}
+                                    style={{
+                                        background: 'transparent', border: 'none', padding: '1rem 0',
+                                        color: activeTab === tab ? 'var(--accent-blue)' : 'var(--text-muted)',
+                                        fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer',
+                                        borderBottom: activeTab === tab ? '2px solid var(--accent-blue)' : '2px solid transparent',
+                                        textTransform: 'uppercase', letterSpacing: '0.1em'
+                                    }}
+                                >
+                                    {tab === 'summary' ? 'Historical Summary' : 'AI Probabilistic Forecast'}
+                                </button>
+                            ))}
+                        </div>
+
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '2.5rem' }}>
-                            {/* Growth Curve */}
-                            <div>
-                                <h3 style={{ fontSize: '1rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1.5rem' }}>5-Year Growth Curve</h3>
-                                <div style={{ height: '350px', background: 'rgba(255,255,255,0.02)', borderRadius: '15px', padding: '1rem' }}>
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <AreaChart data={data.chart}>
-                                            <defs>
-                                                <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="var(--accent-blue)" stopOpacity={0.3}/>
-                                                    <stop offset="95%" stopColor="var(--accent-blue)" stopOpacity={0}/>
-                                                </linearGradient>
-                                            </defs>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                                            <XAxis 
-                                                dataKey="date" 
-                                                axisLine={false} 
-                                                tickLine={false} 
-                                                tick={{ fill: 'var(--text-muted)', fontSize: 10 }} 
-                                            />
-                                            <YAxis 
-                                                axisLine={false} 
-                                                tickLine={false} 
-                                                tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
-                                                domain={['auto', 'auto']}
-                                            />
-                                            <Tooltip 
-                                                contentStyle={{ background: '#1a1a2e', border: '1px solid var(--border-glass)', borderRadius: '10px' }}
-                                                itemStyle={{ color: 'var(--accent-blue)' }}
-                                            />
-                                            <Area 
-                                                type="monotone" 
-                                                dataKey="price" 
-                                                stroke="var(--accent-blue)" 
-                                                strokeWidth={3}
-                                                fillOpacity={1} 
-                                                fill="url(#colorPrice)" 
-                                            />
-                                        </AreaChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </div>
-
-                            {/* Volatility & Metrics */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                                <h3 style={{ fontSize: '1rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.5rem' }}>Volatility Stats</h3>
-                                
-                                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.2rem', borderRadius: '15px', border: '1px solid var(--border-glass)' }}>
-                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Annualized Volatility</div>
-                                    <div style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--profit-green)' }}>{data.volatility}%</div>
-                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>Measure of price variance over the last 1 year.</p>
-                                </div>
-
-                                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.2rem', borderRadius: '15px', border: '1px solid var(--border-glass)' }}>
-                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Max Drawdown (5Y)</div>
-                                    <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#ef4444' }}>{data.max_drawdown}%</div>
-                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>Most significant peak-to-trough decline.</p>
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                    <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '10px', textAlign: 'center' }}>
-                                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Beta</div>
-                                        <div style={{ fontWeight: 600 }}>{data.beta || 'N/A'}</div>
+                            {activeTab === 'summary' ? (
+                                <>
+                                    {/* Growth Curve */}
+                                    <div>
+                                        <h3 style={{ fontSize: '1rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1.5rem' }}>5-Year Growth Curve</h3>
+                                        <div style={{ height: '350px', background: 'rgba(255,255,255,0.02)', borderRadius: '15px', padding: '1rem' }}>
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <AreaChart data={data.chart}>
+                                                    <defs>
+                                                        <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                                                            <stop offset="5%" stopColor="var(--accent-blue)" stopOpacity={0.3}/>
+                                                            <stop offset="95%" stopColor="var(--accent-blue)" stopOpacity={0}/>
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                                    <XAxis 
+                                                        dataKey="date" 
+                                                        axisLine={false} 
+                                                        tickLine={false} 
+                                                        tick={{ fill: 'var(--text-muted)', fontSize: 10 }} 
+                                                    />
+                                                    <YAxis 
+                                                        axisLine={false} 
+                                                        tickLine={false} 
+                                                        tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
+                                                        domain={['auto', 'auto']}
+                                                    />
+                                                    <Tooltip 
+                                                        contentStyle={{ background: '#1a1a2e', border: '1px solid var(--border-glass)', borderRadius: '10px' }}
+                                                        itemStyle={{ color: 'var(--accent-blue)' }}
+                                                    />
+                                                    <Area 
+                                                        type="monotone" 
+                                                        dataKey="price" 
+                                                        stroke="var(--accent-blue)" 
+                                                        strokeWidth={3}
+                                                        fillOpacity={1} 
+                                                        fill="url(#colorPrice)" 
+                                                    />
+                                                </AreaChart>
+                                            </ResponsiveContainer>
+                                        </div>
                                     </div>
-                                    <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '10px', textAlign: 'center' }}>
-                                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Div Yield</div>
-                                        <div style={{ fontWeight: 600 }}>{(data.dividend_yield * 100).toFixed(2)}%</div>
-                                    </div>
-                                </div>
 
-                                <div style={{ marginTop: 'auto', textAlign: 'center' }}>
-                                    <button 
-                                        style={{ 
-                                            width: '100%', padding: '1rem', borderRadius: '10px', 
-                                            background: 'var(--accent-blue)', color: 'white', fontWeight: 700,
-                                            border: 'none', cursor: 'pointer'
-                                        }}
-                                        onClick={closeTicker}
-                                    >
-                                        Back to Terminal
-                                    </button>
-                                </div>
-                            </div>
+                                    {/* Volatility & Metrics */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                        <h3 style={{ fontSize: '1rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.5rem' }}>Volatility Stats</h3>
+                                        
+                                        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.2rem', borderRadius: '15px', border: '1px solid var(--border-glass)' }}>
+                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Annualized Volatility</div>
+                                            <div style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--profit-green)' }}>{data.volatility}%</div>
+                                            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>Measure of price variance over the last 1 year.</p>
+                                        </div>
+
+                                        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.2rem', borderRadius: '15px', border: '1px solid var(--border-glass)' }}>
+                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Max Drawdown (5Y)</div>
+                                            <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#ef4444' }}>{data.max_drawdown}%</div>
+                                            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>Most significant peak-to-trough decline.</p>
+                                        </div>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '10px', textAlign: 'center' }}>
+                                                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Beta</div>
+                                                <div style={{ fontWeight: 600 }}>{data.beta || 'N/A'}</div>
+                                            </div>
+                                            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '10px', textAlign: 'center' }}>
+                                                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Div Yield</div>
+                                                <div style={{ fontWeight: 600 }}>{(data.dividend_yield * 100).toFixed(2)}%</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    {/* Forecast Chart */}
+                                    <div>
+                                        <h3 style={{ fontSize: '1rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1.5rem' }}>AI Probability Cones (1-Year)</h3>
+                                        {forecastLoading ? (
+                                            <div style={{ height: '350px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <div className="loader" />
+                                            </div>
+                                        ) : forecast ? (
+                                            <div style={{ height: '350px', background: 'rgba(255,255,255,0.02)', borderRadius: '15px', padding: '1rem' }}>
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <AreaChart data={forecast.cones}>
+                                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                                        <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'var(--text-muted)', fontSize: 10 }} />
+                                                        <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--text-muted)', fontSize: 10 }} domain={['auto', 'auto']} />
+                                                        <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid var(--border-glass)', borderRadius: '10px' }} />
+                                                        <Area type="monotone" dataKey="upper" stroke="transparent" fill="var(--accent-blue)" fillOpacity={0.1} />
+                                                        <Area type="monotone" dataKey="lower" stroke="transparent" fill="var(--accent-blue)" fillOpacity={0.1} />
+                                                        <Area type="monotone" dataKey="mean" stroke="var(--accent-blue)" strokeWidth={3} fill="transparent" />
+                                                    </AreaChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        ) : <p>Forecast data unavailable.</p>}
+                                    </div>
+
+                                    {/* Narrative & Expert Sentiment */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                        <h3 style={{ fontSize: '1rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.5rem' }}>Neural Narrative</h3>
+                                        
+                                        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '15px', border: '1px solid var(--border-glass)', minHeight: '200px' }}>
+                                            {forecastLoading ? <p>Generating insights...</p> : forecast ? (
+                                                <>
+                                                    <p style={{ fontSize: '0.95rem', lineHeight: '1.6', color: '#cbd5e1', marginBottom: '1.5rem' }}>
+                                                        {forecast.narrative}
+                                                    </p>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', padding: '0.8rem', background: 'rgba(255,255,255,0.02)', borderRadius: '10px' }}>
+                                                        <Shield size={16} color="var(--accent-blue)" />
+                                                        <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Confidence Level: {forecast.confidence_score}%</span>
+                                                    </div>
+                                                </>
+                                            ) : <p>Unable to generate narrative.</p>}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </>
                 ) : (
@@ -364,16 +451,230 @@ function RiskRewardScatter({ data }) {
     )
 }
 
+// --- AI v2 Specialized Components ---
+
+export function AIMorningBriefing() {
+    const [briefing, setBriefing] = useState(null)
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        fetch(`${API_BASE}/ai/briefing`)
+            .then(res => res.json())
+            .then(data => { setBriefing(data); setLoading(false) })
+            .catch(() => setLoading(false))
+    }, [])
+
+    if (loading) return <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}><h3>Synthesizing Morning Insights...</h3></div>
+    if (!briefing) return null
+
+    return (
+        <div className="glass-panel" style={{ 
+            padding: '2rem', marginBottom: '2rem', 
+            background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1))',
+            border: '1px solid rgba(59, 130, 246, 0.2)',
+            position: 'relative', overflow: 'hidden'
+        }}>
+            <div style={{ position: 'absolute', top: -50, right: -50, width: 150, height: 150, background: 'var(--accent-blue)', opacity: 0.1, borderRadius: '50%', filter: 'blur(50px)' }}></div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ padding: '0.8rem', background: 'var(--accent-blue)', borderRadius: '12px' }}>
+                    <Newspaper size={24} color="white" />
+                </div>
+                <div>
+                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>AI Morning Briefing</h3>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Synapse Engine v2.1 • {new Date().toLocaleDateString()}</p>
+                </div>
+            </div>
+
+            <p style={{ fontSize: '1.05rem', lineHeight: '1.6', color: '#e2e8f0', marginBottom: '2rem', whiteSpace: 'pre-wrap' }}>
+                {briefing.narrative}
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+                {(briefing.bullets || []).map((bullet, idx) => (
+                    <div key={idx} style={{ 
+                        background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-glass)',
+                        display: 'flex', gap: '0.8rem', alignItems: 'flex-start'
+                    }}>
+                        <div style={{ marginTop: '0.2rem' }}><Zap size={16} color="var(--accent-blue)" /></div>
+                        <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{bullet}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+export function SectorAdvisorWidget({ region = "US" }) {
+    const [sectors, setSectors] = useState([])
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        fetch(`${API_BASE}/ai/advisor?region=${region}`)
+            .then(res => res.json())
+            .then(data => { setSectors(data); setLoading(false) })
+            .catch(() => setLoading(false))
+    }, [region])
+
+    if (loading) return <div className="glass-panel" style={{ padding: '1.5rem' }}>Loading Sector Advice...</div>
+
+    return (
+        <div className="glass-panel" style={{ padding: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <h3 style={{ margin: 0, fontSize: '1.1rem' }}>AI Sector Advisor</h3>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{region} Rotation</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {sectors.map(s => (
+                    <div key={s.sector} style={{ 
+                        background: 'rgba(255,255,255,0.02)', padding: '1.2rem', borderRadius: '15px', border: '1px solid var(--border-glass)'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.8rem' }}>
+                            <div>
+                                <div style={{ fontWeight: 800, fontSize: '1rem' }}>{s.sector}</div>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Cycle: {s.cycle_meter}</div>
+                            </div>
+                            <div style={{ 
+                                background: s.rating.includes('Buy') ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                color: s.rating.includes('Buy') ? 'var(--profit-green)' : '#ef4444',
+                                padding: '0.4rem 0.8rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700, alignSelf: 'flex-start'
+                            }}>
+                                {s.rating}
+                            </div>
+                        </div>
+                        <p style={{ fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '1rem', lineHeight: '1.4' }}>{s.reasoning}</p>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '0.8rem' }}>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Doubling Time:</span>
+                            <span style={{ fontWeight: 700, color: 'var(--accent-blue)' }}>{s.years_to_double} Years</span>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+export function AlphaAcademy() {
+    return (
+        <>
+            <header style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                <Crown size={40} style={{ color: '#fbbf24', filter: 'drop-shadow(0 0 10px rgba(251, 191, 36, 0.4))' }} />
+                <div>
+                    <h1 style={{ margin: 0 }}>Alpha Academy</h1>
+                    <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>Mastering investement philosophies and mental models (ELI5).</p>
+                </div>
+            </header>
+            <div style={{ height: '3rem' }}></div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '2rem' }}>
+                <div className="glass-panel" style={{ padding: '2rem' }}>
+                    <h2 style={{ color: 'var(--accent-blue)', marginBottom: '1.5rem' }}>Investment Philosophies</h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                        <div>
+                            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>Benjamin Graham: Deep Value</h3>
+                            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>Buying assets for significantly less than their net intrinsic value. Think of it as buying a dollar for 50 cents.</p>
+                        </div>
+                        <div>
+                            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>Peter Lynch: Growth at a Reasonable Price</h3>
+                            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>Investing in companies you understand that have a "story" and huge growth potential without paying astronomical prices.</p>
+                        </div>
+                        <div>
+                            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>Nassim Taleb: Antifragility</h3>
+                            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>Building a system that actually benefits from disorder and volatility using the Barbell strategy.</p>
+                        </div>
+                        <div>
+                            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>Morgan Housel: Psychology of Money</h3>
+                            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>Financial success is a soft skill—how you behave is more important than how smart you are.</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="glass-panel" style={{ padding: '2rem' }}>
+                    <h2 style={{ color: '#8b5cf6', marginBottom: '1.5rem' }}>Mental Models</h2>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                        <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-glass)' }}>
+                            <h4 style={{ margin: '0 0 0.5rem 0' }}>First Principles</h4>
+                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Breaking complex problems into basic truths and building up from there.</p>
+                        </div>
+                        <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-glass)' }}>
+                            <h4 style={{ margin: '0 0 0.5rem 0' }}>Inversion</h4>
+                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Solve problems by looking at them backward. "How could I lose money?" instead of "How to gain?"</p>
+                        </div>
+                        <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-glass)' }}>
+                            <h4 style={{ margin: '0 0 0.5rem 0' }}>Circle of Competence</h4>
+                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Know the limits of your knowledge. Only play games where you have an edge.</p>
+                        </div>
+                        <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-glass)' }}>
+                            <h4 style={{ margin: '0 0 0.5rem 0' }}>Second-Order Thinking</h4>
+                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Ask: "And then what?" Consider the downstream consequences of every decision.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </>
+    )
+}
+
+export function YouthAlpha() {
+    return (
+        <>
+            <header style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                <Rocket size={40} style={{ color: '#06b6d4', filter: 'drop-shadow(0 0 10px rgba(6, 182, 212, 0.4))' }} />
+                <div>
+                    <h1 style={{ margin: 0 }}>Youth Alpha</h1>
+                    <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>The Power of Compounding & Long-term Wealth Building.</p>
+                </div>
+            </header>
+            <div style={{ height: '3rem' }}></div>
+            <div className="dashboard-grid">
+                <div className="metric-card glass-panel" style={{ borderLeft: '4px solid #06b6d4' }}>
+                    <span className="label">Wealth Achievement</span>
+                    <span className="value">Lvl 12</span>
+                    <span style={{ color: '#06b6d4', fontWeight: 600 }}>Active SIP Streak: 8 Months</span>
+                </div>
+                <div className="metric-card glass-panel" style={{ borderLeft: '4px solid #8b5cf6' }}>
+                    <span className="label">Compounding Fuel</span>
+                    <span className="value">S Tier</span>
+                    <span style={{ color: 'var(--profit-green)', fontWeight: 600 }}>Efficiency: 94%</span>
+                </div>
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1.5rem' }}>
+                <div className="glass-panel" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                    <h3 style={{ margin: 0 }}>The Compounding Clock</h3>
+                    <div style={{ textAlign: 'center', padding: '2rem' }}>
+                        <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Projected Portfolio Value at Age 60</div>
+                        <div style={{ fontSize: '3rem', fontWeight: 900, color: 'var(--profit-green)', margin: '1rem 0' }}>$1,240,500</div>
+                        <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '0.8rem', borderRadius: '10px', fontSize: '0.85rem' }}>
+                            <strong>Cost of 1 Year Delay:</strong> $84,200
+                        </div>
+                    </div>
+                </div>
+                <ErrorBoundary>
+                    <SectorAdvisorWidget region="US" />
+                </ErrorBoundary>
+            </div>
+        </>
+    )
+}
+
 export function DashboardOverview() {
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
-    const API = 'http://localhost:8001'
+    const [intelData, setIntelData] = useState(null)
+    const [intelLoading, setIntelLoading] = useState(false)
+
 
     useEffect(() => {
-        fetch(`${API}/api/dashboard`)
+        fetch(`${API_BASE}/dashboard`)
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false) })
             .catch(() => setLoading(false))
+
+        setIntelLoading(true)
+        fetch(`${API_BASE}/ai/intel`)
+            .then(r => r.json())
+            .then(d => { setIntelData(d); setIntelLoading(false) })
+            .catch(() => setIntelLoading(false))
     }, [])
 
     const changeColor = (v) => v > 0 ? 'var(--profit-green)' : v < 0 ? '#ef4444' : 'var(--text-muted)'
@@ -440,6 +741,10 @@ export function DashboardOverview() {
             </header>
             <div style={{ height: '3rem' }}></div>
 
+            <ErrorBoundary>
+                <AIMorningBriefing />
+            </ErrorBoundary>
+
             {/* Top Metric Cards */}
             <div className="dashboard-grid">
                 <div className="metric-card glass-panel" style={{ borderLeft: '4px solid var(--accent-blue)' }}>
@@ -490,8 +795,8 @@ export function DashboardOverview() {
                 </div>
             </div>
 
-            {/* Middle Row 2: Allocation + Movers */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1.5rem' }}>
+            {/* Middle Row 2: Allocation + Movers + AI Advisor */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: '1.5rem', marginTop: '1.5rem' }}>
                 {/* Allocation Donut */}
                 <div className="glass-panel" style={{ padding: '1.5rem' }}>
                     <h3 style={{ margin: '0 0 1.2rem 0', fontSize: '1rem' }}>Asset Allocation</h3>
@@ -542,6 +847,11 @@ export function DashboardOverview() {
                         </div>
                     </div>
                 </div>
+
+                {/* AI Sector Advisor Widget */}
+                <ErrorBoundary>
+                    <SectorAdvisorWidget region="US" />
+                </ErrorBoundary>
             </div>
 
             {/* Market Pulse */}
@@ -559,6 +869,44 @@ export function DashboardOverview() {
                     </div>
                 </div>
             )}
+
+            {/* Institutional Intel & Expert Radar */}
+            <div className="glass-panel" style={{ padding: '2rem', marginTop: '1.5rem', background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.4), rgba(15, 23, 42, 0.6))', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+                    <Users size={32} style={{ color: 'var(--accent-blue)' }} />
+                    <div>
+                        <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Institutional Radar (Expert Footprints)</h3>
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Real-time 13F insights and hedge fund letter syntheses for your universe.</p>
+                    </div>
+                </div>
+
+                {intelLoading ? (
+                    <div style={{ padding: '2rem', textAlign: 'center' }}><div className="loader"></div></div>
+                ) : intelData ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                        {intelData.map((item, idx) => (
+                            <div key={idx} style={{ 
+                                background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
+                                padding: '1.5rem', borderRadius: '15px'
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                    <div style={{ fontWeight: 800, fontSize: '0.8rem', color: 'var(--accent-blue)', textTransform: 'uppercase' }}>{item.manager}</div>
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{item.date}</span>
+                                </div>
+                                <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.8rem', color: '#e2e8f0' }}>{item.headline}</div>
+                                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.5', marginBottom: '1rem' }}>{item.summary}</p>
+                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                    {(item.tickers || []).map(t => (
+                                        <span key={t} style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-blue)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
+                                            {t}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : <p>Expert intelligence unavailable.</p>}
+            </div>
         </>
     )
 }
@@ -566,6 +914,7 @@ export function DashboardOverview() {
 export function Portfolio() {
     const [holdings, setHoldings] = useState([])
     const [loading, setLoading] = useState(true)
+    const { openTicker } = useTickerDetail()
     const [searchQuery, setSearchQuery] = useState('')
     const [searchResults, setSearchResults] = useState([])
     const [searchLoading, setSearchLoading] = useState(false)
@@ -574,7 +923,7 @@ export function Portfolio() {
     const [detailLoading, setDetailLoading] = useState(false)
     const [editingTicker, setEditingTicker] = useState(null)
 
-    const API = 'http://localhost:8001'
+    const API = API_BASE.replace('/api', '')
 
     const loadPortfolio = () => {
         setLoading(true)
@@ -758,8 +1107,21 @@ export function Portfolio() {
                                         style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '0.5rem', cursor: 'pointer' }}
                                         onClick={(e) => { e.stopPropagation(); openTicker(h.ticker); }}
                                     >
-                                        <span style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--accent-blue)', textDecoration: 'underline' }}>{h.name}</span>
-                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{h.ticker}</span>
+                                        <span style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--accent-blue)', textDecoration: 'underline' }}>{h.name}</span>
+                                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>{h.ticker}</span>
+                                        <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem' }}>
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); openTicker(h.ticker); }}
+                                                style={{
+                                                    background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)',
+                                                    color: 'var(--accent-blue)', borderRadius: '8px', padding: '0.4rem 0.8rem', cursor: 'pointer',
+                                                    fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em',
+                                                    display: 'flex', alignItems: 'center', gap: '0.4rem'
+                                                }}
+                                            >
+                                                <BrainCircuit size={14} /> AI Forecast
+                                            </button>
+                                        </div>
                                     </div>
                                     <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'baseline', flexWrap: 'wrap' }}>
                                         <span style={{ fontSize: '1.8rem', fontWeight: 700 }}>
@@ -833,6 +1195,15 @@ export function Portfolio() {
                                         cursor: 'pointer', fontSize: '0.75rem',
                                     }}>Edit</button>
                                 )}
+                                
+                                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                    <div 
+                                        onClick={(e) => { e.stopPropagation(); loadDetail(h.ticker); }}
+                                        style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', textTransform: 'uppercase' }}
+                                    >
+                                        {expandedTicker === h.ticker ? 'Collapse Details ↑' : 'View Performance Details ↓'}
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Expanded Detail View */}
@@ -894,13 +1265,28 @@ export function Portfolio() {
 export function RiskAnalysis() {
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
-    const API = 'http://localhost:8001'
+    const [stressData, setStressData] = useState(null)
+    const [stressLoading, setStressLoading] = useState(false)
+    const [behavioralData, setBehavioralData] = useState(null)
+    const [behavioralLoading, setBehavioralLoading] = useState(false)
 
     useEffect(() => {
-        fetch(`${API}/api/risk-analysis`)
+        fetch(`${API_BASE}/risk-analysis`)
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false) })
             .catch(() => setLoading(false))
+            
+        setStressLoading(true)
+        fetch(`${API_BASE}/ai/stress-test`)
+            .then(r => r.json())
+            .then(d => { setStressData(d); setStressLoading(false) })
+            .catch(() => setStressLoading(false))
+
+        setBehavioralLoading(true)
+        fetch(`${API_BASE}/ai/behavioral`)
+            .then(r => r.json())
+            .then(d => { setBehavioralData(d); setBehavioralLoading(false) })
+            .catch(() => setBehavioralLoading(false))
     }, [])
 
     const labelColor = (label) => {
@@ -1028,6 +1414,37 @@ export function RiskAnalysis() {
                 </div>
             </div>
 
+            {/* Crisis Simulator / Stress Test */}
+            <div className="glass-panel" style={{ padding: '2rem', marginTop: '1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+                    <ShieldAlert size={32} style={{ color: '#f59e0b' }} />
+                    <div>
+                        <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Crisis Simulator (Historical Stress Tests)</h3>
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>How your current portfolio would have performed during major market dislocations.</p>
+                    </div>
+                </div>
+
+                {stressLoading ? (
+                    <div style={{ padding: '2rem', textAlign: 'center' }}><div className="loader"></div></div>
+                ) : stressData ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
+                        {stressData.map((scenario) => (
+                            <div key={scenario.scenario} style={{ 
+                                background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-glass)',
+                                padding: '1.5rem', borderRadius: '15px'
+                            }}>
+                                <div style={{ fontWeight: 800, fontSize: '0.9rem', marginBottom: '1rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{scenario.scenario}</div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1rem' }}>
+                                    <span style={{ fontSize: '2rem', fontWeight: 900, color: '#ef4444' }}>{scenario.drawdown}%</span>
+                                    <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 700 }}>Recovery: {scenario.recovery}</span>
+                                </div>
+                                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>{scenario.impact_narrative}</p>
+                            </div>
+                        ))}
+                    </div>
+                ) : <p>Stress test data unavailable.</p>}
+            </div>
+
             {/* Intelligence Section: Rolling Correlation */}
             <div className="glass-panel" style={{ padding: '1.5rem', marginTop: '1.5rem' }}>
                 <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem' }}>Rolling Portfolio Correlation (30D Window)</h3>
@@ -1060,6 +1477,53 @@ export function RiskAnalysis() {
                 </p>
             </div>
 
+            {/* Behavioral Vault & Antifragility */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1.5rem' }}>
+                <div className="glass-panel" style={{ padding: '2rem', borderLeft: '4px solid #8b5cf6' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                        <BrainCircuit size={28} style={{ color: '#8b5cf6' }} />
+                        <h3 style={{ margin: 0 }}>Behavioral Survival Score</h3>
+                    </div>
+                    {behavioralLoading ? <div className="loader"></div> : behavioralData ? (
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '4rem', fontWeight: 900, color: (behavioralData.survival_score || 0) > 70 ? '#10b981' : '#f59e0b' }}>
+                                {behavioralData.survival_score}
+                            </div>
+                            <div style={{ fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: '0.1em' }}> robustness index </div>
+                            <p style={{ marginTop: '1.5rem', fontSize: '0.9rem', color: '#cbd5e1', lineHeight: '1.6' }}>
+                                {behavioralData.survival_narrative}
+                            </p>
+                        </div>
+                    ) : <p>Behavioral data unavailable.</p>}
+                </div>
+
+                <div className="glass-panel" style={{ padding: '2rem', borderLeft: '4px solid #ec4899' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                        <Anchor size={28} style={{ color: '#ec4899' }} />
+                        <h3 style={{ margin: 0 }}>Antifragility Barbell Strategy</h3>
+                    </div>
+                    <div style={{ position: 'relative', height: '180px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', padding: '0 2rem' }}>
+                       {/* Defensive Side */}
+                       <div style={{ width: '60px', height: '100%', display: 'flex', flexDirection: 'column-reverse', alignItems: 'center', gap: '0.5rem' }}>
+                           <div style={{ width: '100%', height: '85%', background: 'linear-gradient(to top, #3b82f6, #60a5fa)', borderRadius: '8px' }}></div>
+                           <span style={{ fontSize: '0.7rem', fontWeight: 700, textAlign: 'center' }}>EXTREMELY SAFE (85%)</span>
+                       </div>
+                       
+                       {/* Aggressive Side */}
+                       <div style={{ width: '60px', height: '100%', display: 'flex', flexDirection: 'column-reverse', alignItems: 'center', gap: '0.5rem' }}>
+                           <div style={{ width: '100%', height: '15%', background: 'linear-gradient(to top, #ec4899, #f472b6)', borderRadius: '8px' }}></div>
+                           <span style={{ fontSize: '0.7rem', fontWeight: 700, textAlign: 'center' }}>AGGRESSIVE (15%)</span>
+                       </div>
+                       
+                       {/* Connecting Line */}
+                       <div style={{ position: 'absolute', bottom: '0', left: '10%', right: '10%', height: '2px', background: 'rgba(255,255,255,0.1)' }}></div>
+                    </div>
+                    <p style={{ marginTop: '1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                        Taleb's Barbell: Maximizing robustness by avoiding the "middle" (moderate risk assets with no survival guarantee).
+                    </p>
+                </div>
+            </div>
+
             {/* Risk Glossary */}
             <div className="glass-panel" style={{ padding: '1.5rem', marginTop: '1.5rem' }}>
                 <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: 'var(--text-muted)' }}>📖 Risk Intelligence</h3>
@@ -1085,13 +1549,46 @@ export function RiskAnalysis() {
 export function Settings() {
     return (
         <>
-            <header>
-                <h1>Engine Configurations</h1>
-                <p className="subtitle">Manage API keys, backtesting parameters, and system preferences.</p>
+            <header style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+                <SettingsIcon size={40} style={{ color: 'var(--text-muted)', opacity: 0.8 }} />
+                <div>
+                    <h1 style={{ margin: 0 }}>Alpha Command Center</h1>
+                    <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>Tune your investment persona and AI sensitivity.</p>
+                </div>
             </header>
-            <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center' }}>
-                <PlayCircle size={48} style={{ color: 'var(--text-muted)', opacity: 0.5, marginBottom: '1rem' }} />
-                <p style={{ color: 'var(--text-muted)' }}>Configuration panel is currently locked by the CTO.</p>
+            <div style={{ height: '3rem' }}></div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1.5rem' }}>
+                <div className="glass-panel" style={{ padding: '2rem' }}>
+                    <h3 style={{ margin: '0 0 1.5rem 0' }}>AI Persona Tuner</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                <span style={{ fontSize: '0.9rem' }}>Deep Value (Graham) Bias</span>
+                                <span style={{ color: 'var(--accent-blue)' }}>70%</span>
+                            </div>
+                            <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px' }}>
+                                <div style={{ width: '70%', height: '100%', background: 'var(--accent-blue)', borderRadius: '3px' }}></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                <span style={{ fontSize: '0.9rem' }}>Growth (Lynch) Sensitivity</span>
+                                <span style={{ color: '#8b5cf6' }}>45%</span>
+                            </div>
+                            <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px' }}>
+                                <div style={{ width: '45%', height: '100%', background: '#8b5cf6', borderRadius: '3px' }}></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="glass-panel" style={{ padding: '2rem' }}>
+                    <h3 style={{ margin: '0 0 1.5rem 0' }}>System Preferences</h3>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                        <p>Experimental AI models enabled.</p>
+                        <p>Regional focus: US + Europe + India.</p>
+                        <p style={{ marginTop: '1rem', color: 'var(--accent-blue)' }}>Synergy Engine v2 is active.</p>
+                    </div>
+                </div>
             </div>
         </>
     )
@@ -1112,11 +1609,12 @@ export function SectorHeatmap() {
     useEffect(() => {
         setLoading(true)
         setError(null)
-        fetch(`http://localhost:8001/api/sector/heatmap?market=${market}`)
+        fetch(`${API_BASE}/sector/heatmap?market=${market}`)
             .then(res => res.json())
             .then(d => {
-                if (Array.isArray(d)) {
-                    setData(d)
+                const actualData = Array.isArray(d) ? d : (d && d.data ? d.data : []);
+                if (Array.isArray(actualData)) {
+                    setData(actualData)
                 } else {
                     console.error("API did not return an array:", d)
                     setError("Received invalid data from server.")
@@ -1748,7 +2246,7 @@ export function DebtFunds() {
                                                 background: 'rgba(99, 102, 241, 0.08)',
                                                 borderLeft: '3px solid var(--accent-blue)',
                                             }}>
-                                                <td colSpan="8" style={{
+                                                <td colSpan="9" style={{
                                                     fontWeight: 700,
                                                     fontSize: '0.95rem',
                                                     padding: '0.8rem 1rem',
@@ -1775,6 +2273,9 @@ export function DebtFunds() {
                                             <td style={{ fontWeight: 600 }}>{item.nav ? `${market === 'India' ? '₹' : market === 'EU' ? '€' : '$'}${item.nav.toLocaleString()}` : 'N/A'}</td>
                                             <td style={{ fontWeight: 600, color: item.yield ? 'var(--profit-green)' : 'var(--text-muted)' }}>
                                                 {item.yield ? `${item.yield.toFixed(2)}%` : 'N/A'}
+                                            </td>
+                                            <td>
+                                                <Sparkline data={item.sparkline} color={item.return_1y >= 0 ? 'var(--profit-green)' : '#ef4444'} width={80} height={24} />
                                             </td>
                                             <td style={{ color: 'var(--text-muted)' }}>{formatAUM(item.aum)}</td>
                                             <td>{formatReturn(item.return_1y)}</td>
@@ -1803,7 +2304,7 @@ export function MacroDashboard() {
     const { openTicker } = useTickerDetail()
 
     useEffect(() => {
-        fetch('http://localhost:8001/api/macro')
+        fetch(`${API_BASE}/macro`)
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false) })
             .catch(() => setLoading(false))
@@ -1898,14 +2399,74 @@ export function MacroDashboard() {
 }
 
 // ─── 2. COMMODITY TRACKER ───────────────────────────────────────
+function CommodityCard({ c, openTicker, changeColor, fmtReturn }) {
+    const [isHovered, setIsHovered] = useState(false);
+    return (
+        <div 
+            className="glass-panel" 
+            onClick={() => {
+                openTicker(c.ticker);
+            }}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            style={{
+                padding: '1.3rem',
+                borderLeft: `3px solid ${c.color}`,
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                transform: isHovered ? 'translateY(-5px)' : 'none',
+                background: isHovered ? 'rgba(255,255,255,0.05)' : 'var(--panel-glass)',
+                boxShadow: isHovered ? '0 10px 20px rgba(0,0,0,0.2)' : 'none'
+            }}
+        >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                    <div style={{ 
+                        fontWeight: 700, 
+                        fontSize: '1.15rem', 
+                        color: 'var(--accent-blue)',
+                        textDecoration: 'underline'
+                    }}>{c.name}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{c.unit}</div>
+                </div>
+                <Sparkline data={c.sparkline} color={c.color} width={100} height={30} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', marginTop: '0.8rem' }}>
+                <span style={{ fontSize: '1.6rem', fontWeight: 700 }}>
+                    {typeof c.price === 'number' ? `$${c.price.toLocaleString()}` : `$${c.price}`}
+                </span>
+                <span style={{ color: changeColor(c.day_change), fontWeight: 600 }}>
+                    {c.day_change > 0 ? '+' : ''}{c.day_change}%
+                </span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.8rem' }}>
+                <div style={{ display: 'flex', gap: '1.2rem', fontSize: '0.85rem' }}>
+                    <div>
+                        <span style={{ color: 'var(--text-muted)' }}>1M </span>
+                        <span style={{ fontWeight: 600, color: changeColor(c.return_1m) }}>{fmtReturn(c.return_1m)}</span>
+                    </div>
+                    <div>
+                        <span style={{ color: 'var(--text-muted)' }}>1Y </span>
+                        <span style={{ fontWeight: 600, color: changeColor(c.return_1y) }}>{fmtReturn(c.return_1y)}</span>
+                    </div>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--accent-blue)', fontWeight: 600, textTransform: 'uppercase' }}>
+                    View Analytics →
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export function CommodityTracker() {
     const [data, setData] = useState([])
     const [loading, setLoading] = useState(true)
+    const { openTicker } = useTickerDetail()
 
     useEffect(() => {
-        fetch('http://localhost:8001/api/commodities')
+        fetch(`${API_BASE}/commodities`)
             .then(r => r.json())
-            .then(d => { setData(d); setLoading(false) })
+            .then(d => { setData(d || []); setLoading(false) })
             .catch(() => setLoading(false))
     }, [])
 
@@ -1917,7 +2478,7 @@ export function CommodityTracker() {
             <header style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
                 <Package size={40} style={{ color: '#f59e0b', filter: 'drop-shadow(0 0 10px rgba(245, 158, 11, 0.4))' }} />
                 <div>
-                    <h1 style={{ margin: 0 }}>Commodity Tracker</h1>
+                    <h1 style={{ margin: 0 }}>Commodity Tracker {data.length > 0 && `(${data.length})`}</h1>
                     <p className="subtitle" style={{ margin: 0, marginTop: '0.3rem' }}>Live prices for metals, energy, and agriculture commodities with historical returns.</p>
                 </div>
             </header>
@@ -1930,38 +2491,13 @@ export function CommodityTracker() {
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem' }}>
                     {data.map(c => (
-                        <div key={c.ticker} className="glass-panel" style={{
-                            padding: '1.3rem',
-                            borderLeft: `3px solid ${c.color}`,
-                        }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                <div>
-                                    <div style={{ fontWeight: 700, fontSize: '1.15rem' }}>{c.name}</div>
-                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{c.unit}</div>
-                                </div>
-                                <Sparkline data={c.sparkline} color={c.color} width={100} height={30} />
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', marginTop: '0.8rem' }}>
-                                <span style={{ fontSize: '1.6rem', fontWeight: 700 }}>${c.price.toLocaleString()}</span>
-                                <span style={{ color: changeColor(c.day_change), fontWeight: 600 }}>
-                                    {c.day_change > 0 ? '+' : ''}{c.day_change}%
-                                </span>
-                            </div>
-                            <div style={{ display: 'flex', gap: '1.2rem', marginTop: '0.8rem', fontSize: '0.85rem' }}>
-                                <div>
-                                    <span style={{ color: 'var(--text-muted)' }}>1M </span>
-                                    <span style={{ fontWeight: 600, color: changeColor(c.return_1m) }}>{fmtReturn(c.return_1m)}</span>
-                                </div>
-                                <div>
-                                    <span style={{ color: 'var(--text-muted)' }}>1Y </span>
-                                    <span style={{ fontWeight: 600, color: changeColor(c.return_1y) }}>{fmtReturn(c.return_1y)}</span>
-                                </div>
-                                <div>
-                                    <span style={{ color: 'var(--text-muted)' }}>5Y </span>
-                                    <span style={{ fontWeight: 600, color: changeColor(c.return_5y) }}>{fmtReturn(c.return_5y)}</span>
-                                </div>
-                            </div>
-                        </div>
+                        <CommodityCard 
+                            key={c.ticker} 
+                            c={c} 
+                            openTicker={openTicker} 
+                            changeColor={changeColor} 
+                            fmtReturn={fmtReturn} 
+                        />
                     ))}
                 </div>
             )}
@@ -1976,7 +2512,7 @@ export function ForexMonitor() {
     const { openTicker } = useTickerDetail()
 
     useEffect(() => {
-        fetch('http://localhost:8001/api/forex')
+        fetch(`${API_BASE}/forex`)
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false) })
             .catch(() => setLoading(false))
@@ -2015,7 +2551,7 @@ export function ForexMonitor() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {data.map(p => (
+                                {data?.map(p => (
                                     <tr key={p.ticker}>
                                         <td style={{ cursor: 'pointer' }} onClick={() => openTicker(p.ticker)}>
                                             <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--accent-blue)', textDecoration: 'underline' }}>{p.name}</div>
@@ -2023,16 +2559,16 @@ export function ForexMonitor() {
                                         </td>
                                         <td style={{ fontWeight: 700, fontSize: '1.15rem' }}>{p.rate}</td>
                                         <td style={{ color: changeColor(p.day_change), fontWeight: 600 }}>
-                                            {p.day_change > 0 ? '+' : ''}{p.day_change.toFixed(2)}%
+                                            {p.day_change > 0 ? '+' : ''}{typeof p.day_change === 'number' ? p.day_change.toFixed(2) : p.day_change}%
                                         </td>
                                         <td style={{ color: changeColor(p.month_change), fontWeight: 600 }}>
                                             {p.month_change > 0 ? '+' : ''}{p.month_change}%
                                         </td>
                                         <td style={{ color: changeColor(p.year_change), fontWeight: 600 }}>
-                                            {p.year_change !== null ? `${p.year_change > 0 ? '+' : ''}${p.year_change}%` : 'N/A'}
+                                            {p.year_change !== null && p.year_change !== undefined ? `${p.year_change > 0 ? '+' : ''}${p.year_change}%` : 'N/A'}
                                         </td>
                                         <td style={{ color: changeColor(p.return_5y), fontWeight: 600 }}>
-                                            {p.return_5y !== null ? `${p.return_5y > 0 ? '+' : ''}${p.return_5y}%` : 'N/A'}
+                                            {p.return_5y !== null && p.return_5y !== undefined ? `${p.return_5y > 0 ? '+' : ''}${p.return_5y}%` : 'N/A'}
                                         </td>
                                         <td style={{ textAlign: 'right' }}>
                                             <Sparkline data={p.sparkline} color={p.month_change >= 0 ? '#10b981' : '#ef4444'} width={120} height={28} />
@@ -2054,7 +2590,7 @@ export function CorrelationMatrix() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        fetch('http://localhost:8001/api/correlation')
+        fetch(`${API_BASE}/correlation`)
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false) })
             .catch(() => setLoading(false))
@@ -2161,10 +2697,11 @@ export function CorrelationMatrix() {
 export function Nifty500Heatmap() {
     const [data, setData] = useState({ sectors: [], years: [] })
     const [loading, setLoading] = useState(true)
+    const { openTicker } = useTickerDetail()
     const [sortBy, setSortBy] = useState('cagr_5y')
 
     useEffect(() => {
-        fetch('http://localhost:8001/api/nifty500')
+        fetch(`${API_BASE}/nifty500`)
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false) })
             .catch(() => setLoading(false))
@@ -2237,13 +2774,14 @@ export function Nifty500Heatmap() {
                                     <th style={{ minWidth: '30px' }}>#</th>
                                     <th style={{ minWidth: '140px' }}>Sector</th>
                                     <th>Level</th>
+                                    <th>Trend (30D)</th>
                                     <th style={{ cursor: 'pointer' }} onClick={() => setSortBy('return_1y')}>
                                         1Y {sortBy === 'return_1y' ? '▼' : ''}
                                     </th>
                                     <th style={{ cursor: 'pointer' }} onClick={() => setSortBy('cagr_5y')}>
                                         5Y CAGR {sortBy === 'cagr_5y' ? '▼' : ''}
                                     </th>
-                                    {data.years.map(y => (
+                                    {[...data.years].reverse().map(y => (
                                         <th key={y} style={{ minWidth: '65px', textAlign: 'center' }}>{y}</th>
                                     ))}
                                 </tr>
@@ -2258,7 +2796,7 @@ export function Nifty500Heatmap() {
                                         }}>
                                             {i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}
                                         </td>
-                                        <td>
+                                        <td style={{ cursor: 'pointer' }} onClick={() => openTicker(s.ticker)}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                 <div style={{
                                                     width: '4px', height: '24px',
@@ -2266,19 +2804,22 @@ export function Nifty500Heatmap() {
                                                     borderRadius: '2px',
                                                 }} />
                                                 <div>
-                                                    <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{s.sector}</div>
+                                                    <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--accent-blue)', textDecoration: 'underline' }}>{s.sector}</div>
                                                     <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{s.ticker}</div>
                                                 </div>
                                             </div>
                                         </td>
                                         <td style={{ fontWeight: 600 }}>{s.price?.toLocaleString()}</td>
+                                        <td>
+                                            <Sparkline data={s.sparkline} color={s.return_1y >= 0 ? 'var(--profit-green)' : '#ef4444'} width={60} height={24} />
+                                        </td>
                                         <td style={{ fontWeight: 700, color: changeColor(s.return_1y), fontSize: '0.95rem' }}>
                                             {s.return_1y != null ? `${s.return_1y > 0 ? '+' : ''}${s.return_1y}%` : 'N/A'}
                                         </td>
                                         <td style={{ fontWeight: 700, color: changeColor(s.cagr_5y), fontSize: '0.95rem' }}>
                                             {s.cagr_5y != null ? `${s.cagr_5y > 0 ? '+' : ''}${s.cagr_5y}%` : 'N/A'}
                                         </td>
-                                        {data.years.map(y => {
+                                        {[...data.years].reverse().map(y => {
                                             const val = s.returns[y]
                                             return (
                                                 <td key={y} style={{
@@ -2314,7 +2855,7 @@ function AnalysisPage({ title, subtitle, philosophy, sortKey, sortDesc = true, e
     useEffect(() => {
         setLoading(true)
         setData(null)
-        fetch(`http://localhost:8001/api/analysis/${region}`)
+        fetch(`${API_BASE}/analysis/${region}`)
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false) })
             .catch(() => setLoading(false))
@@ -2451,12 +2992,13 @@ function AnalysisPage({ title, subtitle, philosophy, sortKey, sortDesc = true, e
 export function IndiaMutualFunds() {
     const [data, setData] = useState([])
     const [loading, setLoading] = useState(true)
+    const { openTicker } = useTickerDetail()
     const [search, setSearch] = useState('')
     const [selectedCategory, setSelectedCategory] = useState('All')
     const [compareList, setCompareList] = useState([])
 
     useEffect(() => {
-        fetch('http://localhost:8001/api/india/mutual-funds')
+        fetch(`${API_BASE}/india/mutual-funds`)
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false) })
             .catch(() => setLoading(false))
@@ -2567,9 +3109,9 @@ export function IndiaMutualFunds() {
                                                         style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: 'var(--accent-blue)' }}
                                                     />
                                                 </td>
-                                                <td style={{ padding: '1.2rem 0.5rem' }}>
-                                                    <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{fund.name}</div>
-                                                    <div style={{ fontSize: '0.72rem', color: 'var(--accent-blue)', marginTop: '0.2rem' }}>{fund.ticker}</div>
+                                                <td style={{ padding: '1.2rem 0.5rem', cursor: 'pointer' }} onClick={() => openTicker(fund.ticker)}>
+                                                    <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--accent-blue)', textDecoration: 'underline' }}>{fund.name}</div>
+                                                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{fund.ticker}</div>
                                                 </td>
                                                 <td style={{ padding: '1.2rem 0.5rem' }}>
                                                     <Sparkline data={fund.sparkline} color={fund.return_1y >= 0 ? 'var(--profit-green)' : '#ef4444'} width={80} height={24} />
@@ -2764,7 +3306,7 @@ export function MarketNews() {
     useEffect(() => {
         setLoading(true)
         setNews([])
-        fetch(`http://localhost:8001/api/news/${region}`)
+        fetch(`${API_BASE}/news/${region}`)
             .then(r => r.json())
             .then(d => { setNews(d); setLoading(false) })
             .catch(() => setLoading(false))
@@ -2860,13 +3402,21 @@ const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#6b7
 export function AllocationAdvisor() {
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
+    const [optData, setOptData] = useState(null)
+    const [optLoading, setOptLoading] = useState(false)
     const [expandedStrategy, setExpandedStrategy] = useState(null)
 
     useEffect(() => {
-        fetch('http://localhost:8001/api/allocation')
+        fetch(`${API_BASE}/allocation`)
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false) })
             .catch(() => setLoading(false))
+            
+        setOptLoading(true)
+        fetch(`${API_BASE}/ai/optimize`)
+            .then(r => r.json())
+            .then(d => { setOptData(d); setOptLoading(false) })
+            .catch(() => setOptLoading(false))
     }, [])
 
     if (loading) return (
@@ -3003,12 +3553,59 @@ export function AllocationAdvisor() {
                 </div>
             )}
 
-            {/* Suggestions */}
-            <div className="glass-panel" style={{ padding: '1.2rem 1.5rem', marginBottom: '1.5rem', borderLeft: '4px solid var(--accent-blue)' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.5rem', textTransform: 'uppercase', color: 'var(--accent-blue)' }}>💡 Personalized Suggestions</div>
-                {data?.suggestions?.map((s, i) => (
-                    <div key={i} style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.7, marginBottom: '0.3rem' }}>{s}</div>
-                ))}
+            {/* Optimal Rebalance Recommendations */}
+            <div className="glass-panel" style={{ padding: '2rem', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+                    <Zap size={32} style={{ color: 'var(--accent-blue)' }} />
+                    <div>
+                        <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Alpha Rebalance (Contrarian-Aware)</h3>
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>AI-suggested adjustments to reach the Efficient Frontier based on current market signals.</p>
+                    </div>
+                </div>
+
+                {optLoading ? (
+                    <div style={{ padding: '2rem', textAlign: 'center' }}><div className="loader"></div></div>
+                ) : optData ? (
+                    <div className="data-table-container">
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead>
+                                <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-glass)' }}>
+                                    <th style={{ padding: '1rem' }}>Asset</th>
+                                    <th style={{ padding: '1rem' }}>Current %</th>
+                                    <th style={{ padding: '1rem' }}>Target %</th>
+                                    <th style={{ padding: '1rem' }}>Action</th>
+                                    <th style={{ padding: '1rem' }}>Priority</th>
+                                    <th style={{ padding: '1rem' }}>Contrarian Reason</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {optData.map((row) => (
+                                    <tr key={row.ticker} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
+                                        <td style={{ padding: '1rem', fontWeight: 700 }}>{row.ticker}</td>
+                                        <td style={{ padding: '1rem', color: 'var(--text-muted)' }}>{row.current_weight}%</td>
+                                        <td style={{ padding: '1rem', color: 'var(--accent-blue)', fontWeight: 700 }}>{row.target_weight}%</td>
+                                        <td style={{ padding: '1rem' }}>
+                                            <span style={{ 
+                                                padding: '0.3rem 0.6rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600,
+                                                background: row.action === 'Buy' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                                color: row.action === 'Buy' ? 'var(--profit-green)' : '#ef4444'
+                                            }}>
+                                                {row.action} {row.order_amount}
+                                            </span>
+                                        </td>
+                                        <td style={{ padding: '1rem' }}>
+                                            <span style={{ 
+                                                color: row.priority === 'High' ? '#f59e0b' : 'var(--text-muted)',
+                                                fontSize: '0.8rem', fontWeight: 700
+                                            }}>{row.priority}</span>
+                                        </td>
+                                        <td style={{ padding: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>{row.reason}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : <p>Optimization data unavailable.</p>}
             </div>
 
             {/* Investor Strategies */}
@@ -3045,11 +3642,11 @@ export function BacktestView() {
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
     const [period, setPeriod] = useState(5)
-    const API = 'http://localhost:8001'
+    const API = API_BASE.replace('/api', '')
 
     useEffect(() => {
         setLoading(true)
-        fetch(`${API}/api/backtest?period=${period}`)
+        fetch(`${API_BASE}/backtest?period=${period}`)
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false) })
             .catch(() => setLoading(false))
@@ -3243,7 +3840,7 @@ export function LegendaryPortfolios() {
 
     useEffect(() => {
         setLoading(true)
-        fetch('http://localhost:8001/api/legendary')
+        fetch(`${API_BASE}/legendary`)
             .then(res => res.json())
             .then(d => {
                 setData(d)
@@ -3420,8 +4017,11 @@ export function LegendaryPortfolios() {
                                                         <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{item.ticker}</div>
                                                     </div>
                                                 </div>
-                                                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-blue)' }}>
-                                                    {item.weight}%
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                                                    <Sparkline data={item.sparkline} color={item.weight >= 0 ? 'var(--profit-green)' : '#ef4444'} width={60} height={20} />
+                                                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-blue)', minWidth: '45px', textAlign: 'right' }}>
+                                                        {item.weight}%
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
@@ -3434,5 +4034,139 @@ export function LegendaryPortfolios() {
                 })}
             </div>
         </>
+    )
+}
+
+// ======================== ALPHA GUIDE: KNOWLEDGE BASE ========================
+// ======================== ALPHA GUIDE: KNOWLEDGE BASE ========================
+export function AlphaGuide() {
+    const sections = [
+        {
+            title: "Magic Screener",
+            icon: <BarChartIcon size={24} />,
+            subtitle: "Joel Greenblatt's Strategy",
+            description: "The core of the Alpha Fund. We rank 3,500+ global assets based on Earnings Yield (value) and Return on Capital (quality). This double-sort identifies 'Good Companies at Cheap Prices.'",
+            details: [
+                "Earnings Yield (EY): EBIT / Enterprise Value",
+                "Return on Capital (ROC): EBIT / (Net Fixed Assets + Working Capital)",
+                "Weekly Rebalancing for optimal performance tracking"
+            ]
+        },
+        {
+            title: "Risk Analysis Engine",
+            icon: <Shield size={24} />,
+            subtitle: "Advanced Volatility Management",
+            description: "Deep-dive diagnostics for any ticker. We calculate internal volatility metrics that go beyond standard standard deviation.",
+            details: [
+                "Max Drawdown: Peak-to-trough decline measurement",
+                "Beta: Sensitivity relative to market benchmarks",
+                "Value at Risk (VaR): Statistical risk of loss estimation"
+            ]
+        },
+        {
+            title: "Institutional AI Intel",
+            icon: <Zap size={24} />,
+            subtitle: "Predictive Forecasting",
+            description: "Leverages proprietary ARIMA and Prophet models to forecast short-to-medium term price trajectories. It identifies 'Contrarian Troughs' where stocks are irrationally oversold.",
+            details: [
+                "Contrarian Scanner: Identifying irrational pessimism",
+                "Morning Briefing: AI-synthesized global market sentiment",
+                "Alpha Advisor: Sector-specific rotation recommendations"
+            ]
+        },
+        {
+            title: "Global Market Pulse",
+            icon: <Globe size={24} />,
+            subtitle: "Multi-Region Sector Analysis",
+            description: "Real-time heatmaps and performance indices for US (S&P 500), Europe (STOXX 600), and India (Nifty 500).",
+            details: [
+                "Sector Heatmaps: Visualizing capital flow",
+                "Commodity Tracker: Gold, Oil, and Agriculture correlation",
+                "Forex Monitor: Currency impact on global holdings"
+            ]
+        },
+        {
+            title: "Portfolio Architecture",
+            icon: <PieChartIcon size={24} />,
+            subtitle: "Backtesting & Optimization",
+            description: "Tools to build and validate your investment ideas against 20 years of historical data.",
+            details: [
+                "Backtest Engine: Walk-forward validation of strategies",
+                "Allocation Advisor: Efficient frontier optimization",
+                "Legendary Portfolios: Track 13F filings of Superinvestors"
+            ]
+        }
+    ];
+
+    return (
+        <div style={{ padding: '0 1rem' }}>
+            <header style={{ display: 'flex', alignItems: 'center', gap: '1.2rem', marginBottom: '3rem' }}>
+                <div style={{ 
+                    padding: '0.8rem', 
+                    background: 'rgba(59, 130, 246, 0.1)', 
+                    borderRadius: '16px',
+                    border: '1px solid var(--border-glass)'
+                }}>
+                    <BrainCircuit size={32} style={{ color: 'var(--accent-blue)', display: 'block' }} />
+                </div>
+                <div>
+                    <h1 style={{ margin: 0, fontSize: '2.2rem' }}>Alpha Guide</h1>
+                    <p style={{ color: 'var(--text-muted)', margin: '0.2rem 0 0 0' }}>Master the proprietary engines of the Alpha Fund platform.</p>
+                </div>
+            </header>
+
+            <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', 
+                gap: '2rem',
+                marginBottom: '4rem'
+            }}>
+                {sections.map((section, idx) => (
+                    <div key={idx} className="glass-panel" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div style={{ color: 'var(--accent-blue)', background: 'rgba(59, 130, 246, 0.1)', padding: '0.6rem', borderRadius: '12px' }}>
+                                {section.icon}
+                            </div>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'rgba(255,255,255,0.1)', letterSpacing: '2px' }}>MODULE 0{idx + 1}</span>
+                        </div>
+                        
+                        <div>
+                            <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'white' }}>{section.title}</h3>
+                            <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', color: 'var(--accent-blue)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{section.subtitle}</p>
+                        </div>
+
+                        <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>
+                            {section.description}
+                        </p>
+
+                        <div style={{ 
+                            marginTop: 'auto', 
+                            padding: '1rem', 
+                            background: 'rgba(0,0,0,0.2)', 
+                            borderRadius: '12px',
+                            border: '1px solid rgba(255,255,255,0.03)'
+                        }}>
+                            <h4 style={{ margin: '0 0 0.8rem 0', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-main)', textTransform: 'uppercase', letterSpacing: '1px' }}>Technical Specs</h4>
+                            <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-muted)', fontSize: '0.85rem', listStyleType: 'circle' }}>
+                                {section.details.map((detail, dIdx) => (
+                                    <li key={dIdx} style={{ marginBottom: '0.4rem' }}>{detail}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <footer className="glass-panel" style={{ padding: '2.5rem', textAlign: 'center', background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%)' }}>
+                <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Ready to Scale Your Alpha?</h2>
+                <p style={{ color: 'var(--text-muted)', maxWidth: '600px', margin: '0 auto 2rem' }}>
+                    All data is synchronized across the global edge network every 15 minutes. For deep-dive research, use the Command Center to adjust your risk tolerance and AI model sensitivity.
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>
+                    <button style={{ padding: '0.8rem 2rem', borderRadius: '12px', background: 'var(--accent-blue)', color: 'white', border: 'none', fontWeight: 600, cursor: 'pointer' }}>Documentation</button>
+                    <button style={{ padding: '0.8rem 2rem', borderRadius: '12px', background: 'transparent', color: 'white', border: '1px solid var(--border-glass)', fontWeight: 600, cursor: 'pointer' }}>API Reference</button>
+                </div>
+            </footer>
+        </div>
     )
 }

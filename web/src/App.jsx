@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom'
-import { LayoutDashboard, TrendingUp, BarChart3, Settings as SettingsIcon, Briefcase, Activity, ChevronDown, ChevronUp, Loader, Grid, List, DollarSign, Globe, Package, ArrowLeftRight, Grid3X3, IndianRupee, Zap, Rocket, Shield, Wallet, Newspaper, PieChart, Crown } from 'lucide-react'
+import { LayoutDashboard, TrendingUp, BarChart3, Settings as SettingsIcon, Briefcase, Activity, ChevronDown, ChevronUp, Loader, Grid, List, DollarSign, Globe, Package, ArrowLeftRight, Grid3X3, IndianRupee, Zap, Rocket, Shield, Wallet, Newspaper, PieChart, Crown, BrainCircuit } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import './index.css'
 
 // Import our specific page components
-import { DashboardOverview, Portfolio, RiskAnalysis, Settings, SectorHeatmap, SectorIndices, DebtFunds, MacroDashboard, CommodityTracker, ForexMonitor, CorrelationMatrix, Nifty500Heatmap, MomentumAnalysis, GrowthAnalysis, RiskAdjustedAnalysis, IncomeAnalysis, MarketNews, AllocationAdvisor, BacktestView, IndiaMutualFunds, LegendaryPortfolios, TickerDetailProvider, useTickerDetail } from './pages/Views'
+import { DashboardOverview, Portfolio, RiskAnalysis, Settings, SectorHeatmap, SectorIndices, DebtFunds, MacroDashboard, CommodityTracker, ForexMonitor, CorrelationMatrix, Nifty500Heatmap, MomentumAnalysis, GrowthAnalysis, RiskAdjustedAnalysis, IncomeAnalysis, MarketNews, AllocationAdvisor, BacktestView, IndiaMutualFunds, LegendaryPortfolios, TickerDetailProvider, useTickerDetail, AlphaAcademy, YouthAlpha, AlphaGuide, Sparkline } from './pages/Views'
 
 const API_BASE = "http://localhost:8001/api"
 
-class ErrorBoundary extends React.Component {
+export class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
     this.state = { hasError: false, error: null, errorInfo: null };
@@ -60,6 +60,7 @@ const SimpleSvgChart = ({ data, width = 700, height = 300 }) => {
   const padding = 20;
   const innerWidth = width - padding * 2;
   const innerHeight = height - padding * 2;
+  if (innerHeight <= 0 || innerWidth <= 0) return null;
 
   const minPrice = Math.min(...data.map(d => d.close));
   const maxPrice = Math.max(...data.map(d => d.close));
@@ -180,6 +181,16 @@ function Screener() {
       })
   }, [])
 
+  const [scannerData, setScannerData] = useState([])
+  const [scannerLoading, setScannerLoading] = useState(true)
+
+  useEffect(() => {
+    fetch(`${API_BASE}/ai/scanner`)
+      .then(res => res.json())
+      .then(d => { setScannerData(d); setScannerLoading(false) })
+      .catch(() => setScannerLoading(false))
+  }, [])
+
   const groupedData = data.reduce((acc, item) => {
     const region = item.region || 'Other';
     if (!acc[region]) acc[region] = [];
@@ -193,7 +204,7 @@ function Screener() {
     <>
       <header>
         <h1>Global Asset Screener</h1>
-        <p className="subtitle">Powered by the Magic Formula (Greenblatt Strategy)</p>
+        <p className="subtitle">Powered by the Magic Formula (Greenblatt Strategy) + Contrarian Scanner</p>
       </header>
 
       {/* High-Level Metrics */}
@@ -201,36 +212,42 @@ function Screener() {
         <div className="metric-card glass-panel">
           <span className="label">Total Assets Analyzed</span>
           <span className="value">{loading ? '-' : data.length}</span>
-          <span className="metric-positive">{loading ? '' : `${Object.keys(groupedData).length} Markets: ${Object.keys(groupedData).join(' • ')}`}</span>
+          <span className="metric-positive">{loading ? '' : `${Object.keys(groupedData).length} Markets Tracked`}</span>
         </div>
         <div className="metric-card glass-panel">
-          <span className="label">Top Sector Yield</span>
-          <span className="value">Technology</span>
-          <span className="metric-positive">Avg ROC: 45.2%</span>
+          <span className="label">Contrarian Signal</span>
+          <span className="value">{scannerLoading ? 'Calculating...' : (scannerData.length > 0 ? 'Active' : 'Neutral')}</span>
+          <span className="metric-positive">Deep Value Troughs Detected</span>
         </div>
         <div className="metric-card glass-panel">
-          <span className="label">System Status</span>
-          <span className="value" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: 'var(--profit-green)', boxShadow: '0 0 10px var(--profit-green)' }}></div>
-            Live DB/API
-          </span>
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Connected to FastAPI</span>
+          <span className="label">Growth Sweet Spot</span>
+          <span className="value">12-35% CAGR</span>
+          <span style={{ color: 'var(--accent-blue)', fontSize: '0.9rem' }}>Optimal Stability Range</span>
         </div>
       </div>
 
       {loading ? (
         <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-          <h3>Analyzing APIs and Local Cache...</h3>
+          <div className="loader" style={{ margin: '0 auto 1rem' }}></div>
+          <h3>Analyzing Global Markets...</h3>
         </div>
       ) : (
         regions.map(region => {
           const regionAssets = groupedData[region] || [];
+          const regionalScanner = scannerData.find(s => s.region === region);
           if (regionAssets.length === 0) return null;
 
           return (
             <div key={region} className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h2 style={{ fontSize: '1.2rem', margin: 0, fontWeight: 600, color: 'var(--accent-blue)' }}>{region} Opportunities</h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <h2 style={{ fontSize: '1.2rem', margin: 0, fontWeight: 700, color: 'var(--accent-blue)' }}>{region} Opportunities</h2>
+                    {regionalScanner && (
+                        <span style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-blue)', padding: '0.3rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600 }}>
+                            Recovery: {regionalScanner.recovery_estimate}
+                        </span>
+                    )}
+                </div>
                 <div style={{ display: 'flex', gap: '1rem' }}>
                   <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{regionAssets.length} Assets Found</span>
                 </div>
@@ -243,6 +260,7 @@ function Screener() {
                       <th>Rank</th>
                       <th>Asset</th>
                       <th>Sector</th>
+                      <th>Trend (30D)</th>
                       <th>Earnings Yield</th>
                       <th>EY Rank</th>
                       <th>Return on Capital</th>
@@ -269,6 +287,9 @@ function Screener() {
                             </div>
                           </td>
                           <td><span style={{ background: 'rgba(255,255,255,0.05)', padding: '0.3rem 0.6rem', borderRadius: '6px', fontSize: '0.85rem' }}>{row.sector}</span></td>
+                          <td>
+                            <Sparkline data={row.sparkline} color={row.ey >= 0 ? 'var(--profit-green)' : '#ef4444'} width={80} height={24} />
+                          </td>
                           <td style={{ fontWeight: 600 }}>{row.ey !== null ? (row.ey * 100).toFixed(2) + '%' : 'N/A'}</td>
                           <td style={{ color: 'var(--text-muted)' }}>{row.eyRank}</td>
                           <td style={{ fontWeight: 600, color: 'var(--profit-green)' }}>{row.roc !== null ? (row.roc * 100).toFixed(2) + '%' : 'N/A'}</td>
@@ -290,6 +311,23 @@ function Screener() {
                   </tbody>
                 </table>
               </div>
+              
+              {/* Regional Investor Footer */}
+              {regionalScanner && (
+                  <div style={{ marginTop: '1.5rem', padding: '1rem', background: 'rgba(0,0,0,0.1)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.03)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <Shield size={14} /> Expert Benchmark:
+                            </div>
+                            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#e2e8f0' }}>{regionalScanner.investor_benchmark}</span>
+                         </div>
+                         <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                            Recovery Confidence: <span style={{ color: 'var(--profit-green)', fontWeight: 700 }}>High (Z-Score Trough)</span>
+                         </div>
+                      </div>
+                  </div>
+              )}
             </div>
           );
         })
@@ -433,8 +471,19 @@ function App() {
               <Newspaper size={20} /> Market News
             </NavLink>
 
-            <NavLink to="/settings" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} style={{ marginTop: 'auto' }}>
-              <SettingsIcon size={20} /> Settings
+            <NavLink to="/settings" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} style={{ marginTop: '0.5rem' }}>
+              <SettingsIcon size={20} /> Command Center
+            </NavLink>
+            
+            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '1rem 1.2rem 0.3rem', marginTop: '0.5rem' }}>Education & Tools</div>
+            <NavLink to="/academy" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+              <Crown size={20} /> Alpha Academy
+            </NavLink>
+            <NavLink to="/youth" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+              <Rocket size={20} /> Youth Alpha
+            </NavLink>
+            <NavLink to="/guide" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} style={{ borderTop: '1px solid var(--border-glass)', paddingTop: '0.8rem', marginTop: '0.5rem' }}>
+              <BrainCircuit size={20} /> Alpha Guide
             </NavLink>
           </nav>
         </aside>
@@ -466,6 +515,9 @@ function App() {
               <Route path="/income" element={<IncomeAnalysis />} />
               <Route path="/news" element={<MarketNews />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/academy" element={<AlphaAcademy />} />
+              <Route path="/youth" element={<YouthAlpha />} />
+              <Route path="/guide" element={<AlphaGuide />} />
             </Routes>
           </ErrorBoundary>
         </main>

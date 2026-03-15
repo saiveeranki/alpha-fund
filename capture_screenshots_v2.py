@@ -11,7 +11,7 @@ async def main():
         base_path = os.path.join(os.path.dirname(__file__), 'docs', 'screenshots')
         os.makedirs(base_path, exist_ok=True)
         
-        url_base = "http://127.0.0.1:5174"
+        url_base = "http://localhost:5173"
 
         try:
             # 1. Sector Heatmap

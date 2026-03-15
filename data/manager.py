@@ -4,6 +4,7 @@ from data.models import FinancialMetrics
 import pandas as pd
 import json
 from datetime import date, datetime, timedelta
+import concurrent.futures
 
 class DataManager:
     """
@@ -56,19 +57,88 @@ class DataManager:
 
     def get_historical_prices(self, ticker: str, period: str = "5y") -> list[dict] | None:
         """
-        Passes historical request to the YFinance provider.
-        Caches it in SQLite to prevent repeated heavy calls.
+        Smart delta-caching for historical prices.
+        Retrieves local cache, fetches only missing 'delta' dates from API,
+        merges them, and updates the local store.
         """
-        cache_key = f"hist_{ticker}_{period}"
-        cached = self._get_cached_data(cache_key)
-        if cached:
-            print(f"[DataManager] Loaded {ticker} historical from DB Cache.")
-            return cached
+        # For small periods or 'max', we still use generic cache for now
+        if period not in ["1y", "5y"]:
+            cache_key = f"hist_{ticker}_{period}"
+            cached = self._get_cached_data(cache_key)
+            if cached: return cached
+            data = self.yfinance.fetch_history(ticker, period)
+            if data: self._set_cached_data(cache_key, data, expiry_hours=24)
+            return data
+
+        return self._get_delta_history(ticker, period)
+
+    def _get_delta_history(self, ticker: str, period: str) -> list[dict]:
+        """Internal helper to manage delta-merging of price data."""
+        from data.database import SessionLocal, StockHistoryCache
+        db = SessionLocal()
+        try:
+            cache_item = db.query(StockHistoryCache).filter(StockHistoryCache.ticker == ticker).first()
+            now = datetime.utcnow()
             
-        data = self.yfinance.fetch_history(ticker, period)
-        if data:
-            self._set_cached_data(cache_key, data, expiry_hours=24) # Cache for 1 day
-        return data
+            # 1. Load existing cache
+            existing_data = []
+            last_date = None
+            if cache_item:
+                existing_data = json.loads(cache_item.data)
+                if existing_data:
+                    last_date = datetime.strptime(existing_data[-1]['date'], '%Y-%m-%d')
+
+            # 2. Determine if we need an update (e.g., if last date is older than 1 trading day)
+            needs_update = True
+            if last_date:
+                # If last recorded date is very recent (today or yesterday depending on market open), skip
+                if (now - last_date).days < 1:
+                    needs_update = False
+
+            if not needs_update and existing_data:
+                print(f"[DataManager] Delta-Cache Hit for {ticker}.")
+                return existing_data
+
+            # 3. Fetch Delta/Full from API
+            print(f"[DataManager] Fetching Delta for {ticker} (Last: {last_date})...")
+            # If no cache, fetch full period. If cache, fetch just enough to cover gap.
+            fetch_period = period if not last_date else "1mo" 
+            new_data = self.yfinance.fetch_history(ticker, fetch_period)
+            
+            if not new_data:
+                return existing_data
+
+            # 4. Merge Data (Ensuring uniqueness by date)
+            combined_map = {item['date']: item['close'] for item in existing_data}
+            for item in new_data:
+                combined_map[item['date']] = item['close']
+            
+            # Sort back by date
+            sorted_dates = sorted(combined_map.keys())
+            merged_data = [{"date": d, "close": combined_map[d]} for d in sorted_dates]
+
+            # 5. Persist back to DB
+            if cache_item:
+                cache_item.data = json.dumps(merged_data)
+                cache_item.last_updated = now
+            else:
+                new_cache = StockHistoryCache(
+                    ticker=ticker,
+                    data=json.dumps(merged_data),
+                    last_updated=now
+                )
+                db.add(new_cache)
+            
+            db.commit()
+            print(f"[DataManager] Delta-Cache Updated for {ticker}. Merged {len(new_data)} new points.")
+            return merged_data
+
+        except Exception as e:
+            print(f"[DataManager] Delta-Cache Error for {ticker}: {e}")
+            db.rollback()
+            return []
+        finally:
+            db.close()
         
     def get_magic_formula_data(self, ticker: str, name: str, sector: str, market: str = "GLOBAL") -> dict:
         """
@@ -191,20 +261,23 @@ class DataManager:
         # Indian Nifty / BSE Sector Indices (matching FundsIndia reference chart)
         # Tickers verified against Yahoo Finance availability
         # Note: Most indices start mid-2011, so 2010 data is sparse
+        # Indian Nifty / BSE Sector Indices (matching Nifty 500 Heatmap)
         INDIA_SECTORS = [
-            {"name": "Healthcare", "tickers": ["^CNXPHARMA"], "color": "#ef4444"},
-            {"name": "Auto", "tickers": ["^CNXAUTO"], "color": "#f59e0b"},
-            {"name": "FMCG", "tickers": ["^CNXFMCG"], "color": "#f97316"},
-            {"name": "Financials", "tickers": ["NIFTY_FIN_SERVICE.NS"], "color": "#10b981"},
             {"name": "IT", "tickers": ["^CNXIT"], "color": "#3b82f6"},
-            {"name": "Cons Disc.", "tickers": ["^CNXCONSUM"], "color": "#a855f7"},
-            {"name": "Media", "tickers": ["^CNXMEDIA"], "color": "#64748b"},
-            {"name": "Telecom", "tickers": ["BHARTIARTL.NS"], "color": "#84cc16"},
-            {"name": "Oil & Gas", "tickers": ["^CNXENERGY"], "color": "#14b8a6"},
+            {"name": "Pharma", "tickers": ["^CNXPHARMA"], "color": "#ef4444"},
+            {"name": "Auto", "tickers": ["^CNXAUTO"], "color": "#f59e0b"},
+            {"name": "Metal", "tickers": ["^CNXMETAL"], "color": "#a8a29e"},
+            {"name": "FMCG", "tickers": ["^CNXFMCG"], "color": "#f97316"},
             {"name": "Realty", "tickers": ["^CNXREALTY"], "color": "#ec4899"},
-            {"name": "Metals", "tickers": ["^CNXMETAL"], "color": "#a8a29e"},
-            {"name": "Utilities", "tickers": ["^CNXPSE"], "color": "#06b6d4"},
             {"name": "Infrastructure", "tickers": ["^CNXINFRA"], "color": "#8b5cf6"},
+            {"name": "Media", "tickers": ["^CNXMEDIA"], "color": "#64748b"},
+            {"name": "PSE", "tickers": ["^CNXPSE"], "color": "#06b6d4"},
+            {"name": "Energy", "tickers": ["^CNXENERGY"], "color": "#14b8a6"},
+            {"name": "Bank", "tickers": ["^NSEBANK"], "color": "#10b981"},
+            {"name": "Consumer Durables", "tickers": ["^CNXCONSUM"], "color": "#a855f7"},
+            {"name": "Financial Services", "tickers": ["NIFTY_FIN_SERVICE.NS"], "color": "#22d3ee"},
+            {"name": "MNC", "tickers": ["^CNXMNC"], "color": "#fbbf24"},
+            {"name": "Services", "tickers": ["^CNXSERVICE"], "color": "#84cc16"},
         ]
         
         market_map = {"US": US_SECTORS, "EU": EU_SECTORS, "India": INDIA_SECTORS}
@@ -289,27 +362,28 @@ class DataManager:
         
         # Indian Nifty sector indices + top blue-chip stocks per sector
         INDIA_SECTORS = [
-            {"name": "Healthcare", "tickers": ["^CNXPHARMA", "SUNPHARMA.NS", "DRREDDY.NS", "CIPLA.NS", "DIVISLAB.NS"], "color": "#ef4444"},
-            {"name": "Auto", "tickers": ["^CNXAUTO", "MARUTI.NS", "M&M.NS", "BAJAJ-AUTO.NS", "EICHERMOT.NS"], "color": "#f59e0b"},
-            {"name": "FMCG", "tickers": ["^CNXFMCG", "HINDUNILVR.NS", "ITC.NS", "NESTLEIND.NS", "DABUR.NS"], "color": "#f97316"},
-            {"name": "Financials", "tickers": ["NIFTY_FIN_SERVICE.NS", "HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS", "KOTAKBANK.NS"], "color": "#10b981"},
             {"name": "IT", "tickers": ["^CNXIT", "TCS.NS", "INFY.NS", "WIPRO.NS", "HCLTECH.NS"], "color": "#3b82f6"},
-            {"name": "Cons Disc.", "tickers": ["^CNXCONSUM", "TITAN.NS", "TRENT.NS", "PAGEIND.NS", "JUBLFOOD.NS"], "color": "#a855f7"},
-            {"name": "Media", "tickers": ["^CNXMEDIA", "ZEEL.NS", "PVRINOX.NS", "SUNTV.NS", "NETWORK18.NS"], "color": "#64748b"},
-            {"name": "Telecom", "tickers": ["BHARTIARTL.NS", "IDEA.NS", "TATACOMM.NS", "INDUSTOWER.NS", "ROUTE.NS"], "color": "#84cc16"},
-            {"name": "Oil & Gas", "tickers": ["^CNXENERGY", "RELIANCE.NS", "ONGC.NS", "BPCL.NS", "IOC.NS"], "color": "#14b8a6"},
+            {"name": "Pharma", "tickers": ["^CNXPHARMA", "SUNPHARMA.NS", "DRREDDY.NS", "CIPLA.NS", "DIVISLAB.NS"], "color": "#ef4444"},
+            {"name": "Auto", "tickers": ["^CNXAUTO", "MARUTI.NS", "M&M.NS", "BAJAJ-AUTO.NS", "EICHERMOT.NS"], "color": "#f59e0b"},
+            {"name": "Metal", "tickers": ["^CNXMETAL", "TATASTEEL.NS", "HINDALCO.NS", "JSWSTEEL.NS", "VEDL.NS"], "color": "#a8a29e"},
+            {"name": "FMCG", "tickers": ["^CNXFMCG", "HINDUNILVR.NS", "ITC.NS", "NESTLEIND.NS", "DABUR.NS"], "color": "#f97316"},
             {"name": "Realty", "tickers": ["^CNXREALTY", "DLF.NS", "GODREJPROP.NS", "OBEROIRLTY.NS", "PRESTIGE.NS"], "color": "#ec4899"},
-            {"name": "Metals", "tickers": ["^CNXMETAL", "TATASTEEL.NS", "HINDALCO.NS", "JSWSTEEL.NS", "VEDL.NS"], "color": "#a8a29e"},
-            {"name": "Utilities", "tickers": ["^CNXPSE", "NTPC.NS", "POWERGRID.NS", "TATAPOWER.NS", "NHPC.NS"], "color": "#06b6d4"},
             {"name": "Infrastructure", "tickers": ["^CNXINFRA", "LT.NS", "ADANIPORTS.NS", "IRB.NS", "LTIM.NS"], "color": "#8b5cf6"},
+            {"name": "Media", "tickers": ["^CNXMEDIA", "ZEEL.NS", "PVRINOX.NS", "SUNTV.NS", "NETWORK18.NS"], "color": "#64748b"},
+            {"name": "PSE", "tickers": ["^CNXPSE", "NTPC.NS", "POWERGRID.NS", "TATAPOWER.NS", "NHPC.NS"], "color": "#06b6d4"},
+            {"name": "Energy", "tickers": ["^CNXENERGY", "RELIANCE.NS", "ONGC.NS", "BPCL.NS", "IOC.NS"], "color": "#14b8a6"},
+            {"name": "Bank", "tickers": ["^NSEBANK", "HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS", "AXISBANK.NS"], "color": "#10b981"},
+            {"name": "Consumer Durables", "tickers": ["^CNXCONSUM", "TITAN.NS", "TRENT.NS", "PAGEIND.NS", "JUBLFOOD.NS"], "color": "#a855f7"},
+            {"name": "Financial Services", "tickers": ["NIFTY_FIN_SERVICE.NS", "BAJFINANCE.NS", "RELIANCE.NS", "CHOLAFIN.NS", "MUTHOOTFIN.NS"], "color": "#22d3ee"},
+            {"name": "MNC", "tickers": ["^CNXMNC", "HUL.NS", "NESTLEIND.NS", "ABB.NS", "SIEMENS.NS"], "color": "#fbbf24"},
+            {"name": "Services", "tickers": ["^CNXSERVICE", "HDFCBANK.NS", "INFY.NS", "ADANIPORTS.NS", "ZOMATO.NS"], "color": "#84cc16"},
         ]
         
         market_map = {"US": US_SECTORS, "EU": EU_SECTORS, "India": INDIA_SECTORS}
         SECTORS = market_map.get(market, US_SECTORS)
         
-        results = []
-        for sector in SECTORS:
-            for ticker in sector["tickers"]:
+        def fetch_sector_ticker_data(sector, ticker, market):
+            try:
                 # Try to get Magic Formula fundamentals
                 data = self.get_magic_formula_data(
                     ticker=ticker,
@@ -318,16 +392,19 @@ class DataManager:
                     market=market if market != "India" else "GLOBAL"
                 )
                 
-                # Calculate 5-Year CAGR regardless of fundamentals
+                # Calculate 5-Year CAGR and fetch Sparkline (1mo)
                 hist = self.get_historical_prices(ticker, "5y")
-                cagr_val = None
+                hist_1mo = self.get_historical_prices(ticker, "1mo")
                 
+                cagr_val = None
                 if hist and len(hist) > 1:
                     start_price = hist[0]["close"]
                     end_price = hist[-1]["close"]
                     years = len(hist) / 252.0
                     if years > 0 and start_price > 0:
                         cagr_val = ((end_price / start_price) ** (1 / years)) - 1
+                
+                sparkline = [h["close"] for h in (hist_1mo[-30:] if hist_1mo else [])]
                 
                 def safe_round(val, decimals=2):
                     return round(float(val), decimals) if pd.notna(val) and val is not None else None
@@ -337,6 +414,7 @@ class DataManager:
                     "sector": sector["name"],
                     "color": sector["color"],
                     "cagr": safe_round(cagr_val, 4),
+                    "sparkline": sparkline
                 }
                 
                 if data.get("Status") == "Success":
@@ -351,13 +429,28 @@ class DataManager:
                         "nfa": safe_round(data.get("Net_Fixed_Assets")),
                     })
                 else:
-                    # Indices (e.g. India) won't have fundamentals — fill with None
                     result_entry.update({
                         "ey": None, "roc": None, "ebit": None, "ev": None,
                         "ca": None, "cl": None, "nwc": None, "nfa": None,
                     })
-                
-                results.append(result_entry)
+                return result_entry
+            except Exception as e:
+                print(f"[SectorMetrics] Error for {ticker}: {e}")
+                return None
+
+        # Build list of tasks
+        tasks = []
+        for sector in SECTORS:
+            for ticker in sector["tickers"]:
+                tasks.append((sector, ticker, market))
+
+        results = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            future_to_ticker = {executor.submit(fetch_sector_ticker_data, s, t, m): t for s, t, m in tasks}
+            for future in concurrent.futures.as_completed(future_to_ticker):
+                res = future.result()
+                if res:
+                    results.append(res)
                     
         if results:
             self._set_cached_data(cache_key, results, expiry_hours=12)
@@ -456,52 +549,74 @@ class DataManager:
         market_map = {"US": US_FUNDS, "EU": EU_FUNDS, "India": INDIA_FUNDS}
         categories = market_map.get(market, US_FUNDS)
 
-        results = []
+        def fetch_fund_data(cat_name, fund):
+            ticker = fund["ticker"]
+            try:
+                import yfinance as yf_mod
+                yf_ticker = yf_mod.Ticker(ticker)
+                info = {}
+                try:
+                    info = yf_ticker.info or {}
+                except Exception as e:
+                    print(f"[DebtFunds] Error fetching info for {ticker}: {e}")
+                
+                # Get price histories in parallel-ish (within this thread)
+                hist_5y = yf_ticker.history(period="5y", timeout=10)
+                hist_3y = yf_ticker.history(period="3y", timeout=10)
+                hist_1y = yf_ticker.history(period="1y", timeout=10)
+                hist_1mo = yf_ticker.history(period="1mo", timeout=10)
+                
+                def calc_return(hist, years):
+                    if hist is not None and len(hist) > 1:
+                        start = hist['Close'].iloc[0]
+                        end = hist['Close'].iloc[-1]
+                        if start > 0:
+                            return round(((end / start) ** (1 / years) - 1) * 100, 2)
+                    return None
+                
+                nav = round(float(info.get('previousClose', 0)), 2) if info.get('previousClose') else None
+                aum = info.get('totalAssets')
+                yld = info.get('yield')
+                
+                sparkline = [round(float(s), 2) for s in hist_1mo['Close'].tail(30).tolist()] if not hist_1mo.empty else []
+                
+                return {
+                    "ticker": ticker,
+                    "name": fund["name"],
+                    "category": cat_name,
+                    "nav": nav,
+                    "yield": round(yld * 100, 2) if yld else None,
+                    "aum": aum,
+                    "return_1y": calc_return(hist_1y, 1),
+                    "return_3y": calc_return(hist_3y, 3),
+                    "return_5y": calc_return(hist_5y, 5),
+                    "sparkline": sparkline
+                }
+            except Exception as e:
+                print(f"[DebtFunds] Error for {ticker}: {e}")
+                return {
+                    "ticker": ticker,
+                    "name": fund["name"],
+                    "category": cat_name,
+                    "nav": None, "yield": None, "aum": None,
+                    "return_1y": None, "return_3y": None, "return_5y": None,
+                    "sparkline": []
+                }
+
+        # Build tasks
+        tasks = []
         for cat in categories:
             for fund in cat["funds"]:
-                ticker = fund["ticker"]
-                try:
-                    import yfinance as yf_mod
-                    yf_ticker = yf_mod.Ticker(ticker)
-                    info = yf_ticker.info or {}
-                    
-                    # Get price history for return calculations
-                    hist_5y = yf_ticker.history(period="5y")
-                    hist_3y = yf_ticker.history(period="3y")
-                    hist_1y = yf_ticker.history(period="1y")
-                    
-                    def calc_return(hist, years):
-                        if hist is not None and len(hist) > 1:
-                            start = hist['Close'].iloc[0]
-                            end = hist['Close'].iloc[-1]
-                            if start > 0:
-                                return round(((end / start) ** (1 / years) - 1) * 100, 2)
-                        return None
-                    
-                    nav = round(float(info.get('previousClose', 0)), 2) if info.get('previousClose') else None
-                    aum = info.get('totalAssets')
-                    yld = info.get('yield')
-                    
-                    results.append({
-                        "ticker": ticker,
-                        "name": fund["name"],
-                        "category": cat["category"],
-                        "nav": nav,
-                        "yield": round(yld * 100, 2) if yld else None,
-                        "aum": aum,
-                        "return_1y": calc_return(hist_1y, 1),
-                        "return_3y": calc_return(hist_3y, 3),
-                        "return_5y": calc_return(hist_5y, 5),
-                    })
-                except Exception as e:
-                    print(f"[DebtFunds] Error for {ticker}: {e}")
-                    results.append({
-                        "ticker": ticker,
-                        "name": fund["name"],
-                        "category": cat["category"],
-                        "nav": None, "yield": None, "aum": None,
-                        "return_1y": None, "return_3y": None, "return_5y": None,
-                    })
+                tasks.append((cat["category"], fund))
+
+        results = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            future_to_fund = {executor.submit(fetch_fund_data, c_name, f): f for c_name, f in tasks}
+            for future in concurrent.futures.as_completed(future_to_fund):
+                res = future.result()
+                if res:
+                    results.append(res)
+
         if results:
             self._set_cached_data(cache_key, results, expiry_hours=12)
         return results
@@ -719,11 +834,12 @@ class DataManager:
         
         results = []
         for item in COMMODITIES:
+            ticker = item["ticker"]
             try:
-                t = yf_mod.Ticker(item["ticker"])
-                hist_1m = t.history(period="1mo")
-                hist_1y = t.history(period="1y")
-                hist_5y = t.history(period="5y")
+                t = yf_mod.Ticker(ticker)
+                hist_1m = t.history(period="1mo", timeout=10)
+                hist_1y = t.history(period="1y", timeout=10)
+                hist_5y = t.history(period="5y", timeout=10)
                 
                 if hist_1m.empty:
                     continue
@@ -732,7 +848,6 @@ class DataManager:
                 prev = float(hist_1m['Close'].iloc[-2]) if len(hist_1m) > 1 else current
                 day_change = round((current - prev) / prev * 100, 2) if prev else 0
                 
-                # Calculate period returns
                 def period_return(hist):
                     if hist is not None and len(hist) > 1:
                         s, e = float(hist['Close'].iloc[0]), float(hist['Close'].iloc[-1])
@@ -742,7 +857,7 @@ class DataManager:
                 sparkline = hist_1m['Close'].tail(20).tolist()
                 
                 results.append({
-                    "ticker": item["ticker"],
+                    "ticker": ticker,
                     "name": item["name"],
                     "unit": item["unit"],
                     "color": item["color"],
@@ -754,7 +869,7 @@ class DataManager:
                     "sparkline": [round(s, 2) for s in sparkline],
                 })
             except Exception as e:
-                print(f"[Commodities] Error for {item['ticker']}: {e}")
+                print(f"[Commodities] Error for {ticker}: {e}")
         
         if results:
             self._set_cached_data(cache_key, results, expiry_hours=4)
@@ -787,11 +902,12 @@ class DataManager:
         
         results = []
         for pair in PAIRS:
+            ticker = pair["ticker"]
             try:
-                t = yf_mod.Ticker(pair["ticker"])
-                hist = t.history(period="1mo")
-                hist_1y = t.history(period="1y")
-                hist_5y = t.history(period="5y")
+                t = yf_mod.Ticker(ticker)
+                hist = t.history(period="1mo", timeout=10)
+                hist_1y = t.history(period="1y", timeout=10)
+                hist_5y = t.history(period="5y", timeout=10)
                 
                 if hist.empty:
                     continue
@@ -814,7 +930,7 @@ class DataManager:
                 sparkline = hist['Close'].tail(20).tolist()
                 
                 results.append({
-                    "ticker": pair["ticker"],
+                    "ticker": ticker,
                     "name": pair["name"],
                     "base": pair["base"],
                     "quote": pair["quote"],
@@ -826,7 +942,7 @@ class DataManager:
                     "sparkline": [round(s, 4) for s in sparkline],
                 })
             except Exception as e:
-                print(f"[Forex] Error for {pair['ticker']}: {e}")
+                print(f"[Forex] Error for {ticker}: {e}")
         
         if results:
             self._set_cached_data(cache_key, results, expiry_hours=4)
@@ -903,6 +1019,7 @@ class DataManager:
 
         import yfinance as yf_mod
         from datetime import datetime
+        import concurrent.futures
 
         NIFTY_SECTORS = [
             {"name": "IT", "ticker": "^CNXIT", "color": "#3b82f6"},
@@ -923,15 +1040,14 @@ class DataManager:
         ]
 
         current_year = datetime.now().year
-        results = []
-
-        for sector in NIFTY_SECTORS:
+        
+        def fetch_sector_data(sector):
             try:
                 t = yf_mod.Ticker(sector["ticker"])
                 hist = t.history(period="max")
                 
                 if hist.empty or len(hist) < 10:
-                    continue
+                    return None
 
                 # Annual returns per year
                 annual_returns = {}
@@ -946,7 +1062,7 @@ class DataManager:
                             )
 
                 # 5Y CAGR
-                hist_5y = t.history(period="5y")
+                hist_5y = t.history(period="5y", timeout=10)
                 cagr_5y = None
                 if hist_5y is not None and len(hist_5y) > 50:
                     start_price = float(hist_5y['Close'].iloc[0])
@@ -955,7 +1071,7 @@ class DataManager:
                         cagr_5y = round(((end_price / start_price) ** (1 / 5) - 1) * 100, 2)
 
                 # 1Y return
-                hist_1y = t.history(period="1y")
+                hist_1y = t.history(period="1y", timeout=10)
                 return_1y = None
                 if hist_1y is not None and len(hist_1y) > 10:
                     s = float(hist_1y['Close'].iloc[0])
@@ -963,10 +1079,16 @@ class DataManager:
                     if s > 0:
                         return_1y = round((e - s) / s * 100, 2)
 
+                # Sparkline (1M history)
+                hist_1m = t.history(period="1mo", timeout=10)
+                sparkline = []
+                if hist_1m is not None and not hist_1m.empty:
+                    sparkline = [round(float(c), 2) for c in hist_1m['Close'].tolist()]
+
                 # Current price
                 current_price = round(float(hist['Close'].iloc[-1]), 2)
 
-                results.append({
+                return {
                     "sector": sector["name"],
                     "ticker": sector["ticker"],
                     "color": sector["color"],
@@ -974,10 +1096,19 @@ class DataManager:
                     "return_1y": return_1y,
                     "cagr_5y": cagr_5y,
                     "returns": annual_returns,
-                })
-
+                    "sparkline": sparkline
+                }
             except Exception as e:
-                print(f"[Nifty500] Error for {sector['name']}: {e}")
+                print(f"[DataManager] Error for sector {sector['name']}: {e}")
+                return None
+
+        results = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            future_to_sector = {executor.submit(fetch_sector_data, s): s for s in NIFTY_SECTORS}
+            for future in concurrent.futures.as_completed(future_to_sector):
+                res = future.result()
+                if res:
+                    results.append(res)
 
         # Sort by 5Y CAGR descending (best performers first)
         results.sort(key=lambda x: x.get("cagr_5y") or -999, reverse=True)
@@ -2229,15 +2360,22 @@ class DataManager:
                         tickers.add(a['ticker'])
             tickers_list = list(tickers)
             
-            # 2. Fetch bulk historical data
-            hist_data = yf.download(tickers_list, period="5y", interval="1mo")['Adj Close']
+            # 2. Fetch bulk historical data (5y monthly for portfolio chart, 1mo daily for sparklines)
+            hist_data = yf.download(tickers_list, period="5y", interval="1mo", timeout=15)['Adj Close']
+            spark_data = yf.download(tickers_list, period="1mo", interval="1d", timeout=15)['Adj Close']
             
             # 3. Fast fetch for dividend yields
             import concurrent.futures
             yields = {}
             def fetch_yield(t):
                 try:
-                    return t, (yf.Ticker(t).info.get("dividendYield", 0) or 0) * 100
+                    ticker_obj = yf.Ticker(t)
+                    info = {}
+                    try:
+                        info = ticker_obj.info or {}
+                    except:
+                        pass
+                    return t, (info.get("dividendYield", 0) or 0) * 100
                 except:
                     return t, 0
             with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
@@ -2246,10 +2384,17 @@ class DataManager:
                     yields[t] = y
                     
             # 4. Calculate metrics per portfolio
-            for region, ports in base_allocations.items():
                 for p in ports:
                     metrics = {"cagr_5y": None, "yield": 0, "chart": [], "sip_return": None}
                     weights = {a['ticker']: a['weight'] / 100 for a in p['allocation']}
+                    
+                    # Add individual sparklines to allocation
+                    for a in p['allocation']:
+                        t = a['ticker']
+                        if t in spark_data.columns:
+                            a['sparkline'] = [round(float(s), 2) for s in spark_data[t].tail(30).dropna().tolist()]
+                        else:
+                            a['sparkline'] = []
                     
                     # Yield
                     metrics['yield'] = round(sum(weights[t] * yields.get(t, 0) for t in weights), 2)

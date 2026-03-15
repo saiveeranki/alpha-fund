@@ -13,16 +13,25 @@ from engine.intel import InstitutionalIntel
 from engine.briefing import BriefingEngine
 from engine.behavioral import BehavioralEngine
 import pandas as pd
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import asynccontextmanager
 
-app = FastAPI(title="Hedge Fund Alpha API", version="1.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Seed the ticker registry on startup
+    data_manager.seed_ticker_registry()
+    yield
 
-# Enable CORS so the Vite/React frontend can talk to it
+app = FastAPI(title="Hedge Fund Alpha API", version="1.0", lifespan=lifespan)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173", "http://127.0.0.1:5174"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 data_manager = DataManager()
@@ -94,20 +103,58 @@ GLOBAL_UNIVERSE = [
 async def get_screener_results():
     """
     Returns the Magic Formula ranked list for the global universe.
-    Caches calls using the local SQLite DataManager.
+    Uses asyncio to fetch data in parallel for stability and performance.
     """
-    results = []
+    async def fetch_ticker_data(t):
+        try:
+            # Wrap synchronous DataManager calls in to_thread to prevent blocking
+            data = await asyncio.to_thread(
+                data_manager.get_magic_formula_data,
+                ticker=t["ticker"], 
+                name=t["name"], 
+                sector=t["sector"], 
+                market=t["market"]
+            )
+            if data["Status"] == "Success":
+                data["Region"] = t.get("region", "Other")
+                
+                # Fetch 5Y CAGR and 30-day sparkline in parallel
+                hist_5y = await asyncio.to_thread(data_manager.get_historical_prices, t["ticker"], "5y")
+                hist_1mo = await asyncio.to_thread(data_manager.get_historical_prices, t["ticker"], "1mo")
+                
+                cagr_val = "N/A"
+                if hist_5y and len(hist_5y) > 1:
+                    start_price = hist_5y[0]["close"]
+                    end_price = hist_5y[-1]["close"]
+                    years = len(hist_5y) / 252.0
+                    if years > 0 and start_price > 0:
+                        cagr = ((end_price / start_price) ** (1 / years)) - 1
+                        cagr_val = f"{cagr * 100:.2f}%"
+                
+                sparkline = [h["close"] for h in (hist_1mo[-30:] if hist_1mo else [])]
+                
+                return {
+                    "data": data,
+                    "cagr": cagr_val,
+                    "sparkline": sparkline
+                }
+        except Exception as e:
+            print(f"[Screener] Parallel fetch error for {t['ticker']}: {e}")
+        return None
+
+    # Fetch all tickers in parallel
+    tasks = [fetch_ticker_data(t) for t in GLOBAL_UNIVERSE]
+    raw_results = await asyncio.gather(*tasks)
     
-    for t in GLOBAL_UNIVERSE:
-        data = data_manager.get_magic_formula_data(
-            ticker=t["ticker"], 
-            name=t["name"], 
-            sector=t["sector"], 
-            market=t["market"]
-        )
-        if data["Status"] == "Success":
-            data["Region"] = t.get("region", "Other")
-            results.append(data)
+    results = []
+    cagr_map = {}
+    spark_map = {}
+    
+    for r in raw_results:
+        if r:
+            results.append(r["data"])
+            cagr_map[r["data"]["Ticker"]] = r["cagr"]
+            spark_map[r["data"]["Ticker"]] = r["sparkline"]
             
     if not results:
         raise HTTPException(status_code=500, detail="Failed to fetch market data.")
@@ -115,27 +162,12 @@ async def get_screener_results():
     df = pd.DataFrame(results)
     ranked_df = rank_stocks(df)
     
-    # Convert numpy int64/float64 to native python types for JSON serialization
-    # We round floats to 4 decimal places for the frontend
     result_list = []
-    
-    # Handle potential None values safely by providing defaults or rounding
     def safe_round(val, decimals=2):
         return round(float(val), decimals) if pd.notna(val) and val is not None else None
         
     for _, row in ranked_df.iterrows():
-        # Calculate 5-Year CAGR
         ticker_str = str(row["Ticker"])
-        hist = data_manager.get_historical_prices(ticker_str, "5y")
-        cagr_val = "N/A"
-        if hist and len(hist) > 1:
-            start_price = hist[0]["close"]
-            end_price = hist[-1]["close"]
-            years = len(hist) / 252.0  # Approx 252 trading days/year
-            if years > 0 and start_price > 0:
-                cagr = ((end_price / start_price) ** (1 / years)) - 1
-                cagr_val = f"{cagr * 100:.2f}%"
-
         result_list.append({
             "ticker": ticker_str,
             "name": str(row["Name"]),
@@ -145,7 +177,8 @@ async def get_screener_results():
             "eyRank": int(row["EY_Rank"]) if pd.notna(row["EY_Rank"]) else "N/A",
             "rocRank": int(row["ROC_Rank"]) if pd.notna(row["ROC_Rank"]) else "N/A",
             "magicRank": int(row["Magic_Rank"]) if pd.notna(row["Magic_Rank"]) else "N/A",
-            "cagr": cagr_val,
+            "cagr": cagr_map.get(ticker_str, "N/A"),
+            "sparkline": spark_map.get(ticker_str, []),
             "ebit": safe_round(row.get("EBIT")),
             "ev": safe_round(row.get("Enterprise_Value")),
             "ca": safe_round(row.get("Current_Assets")),
@@ -178,6 +211,7 @@ async def get_ticker_detail(ticker: str):
         raise HTTPException(status_code=404, detail="Ticker details not found")
     return data
 
+@app.get("/api/sector/heatmap")
 async def get_sector_heatmap(market: str = "US"):
     """
     Returns annual sector returns since 2010 for the heatmap visualization.
@@ -291,10 +325,6 @@ async def get_backtest(period: int = 5):
     finally:
         session.close()
 
-@app.on_event("startup")
-async def startup_event():
-    """Seed the ticker registry on startup."""
-    data_manager.seed_ticker_registry()
 
 @app.get("/api/tickers")
 async def search_tickers(q: str = ""):
@@ -345,7 +375,7 @@ async def get_ai_forecast(ticker: str):
 @app.get("/api/ai/scanner")
 async def get_contrarian_scan():
     """Returns regional contrarian recovery results."""
-    return scanner.scan_all_regions()
+    return list(scanner.scan_all_regions().values())
 
 @app.get("/api/ai/advisor")
 async def get_sector_advice(region: str = "US"):
@@ -396,7 +426,7 @@ async def get_ai_optimization():
     scan_data = scanner.scan_all_regions().get("US", {}).get("top_candidates", [])
     return optimizer.get_optimal_allocation(portfolio, scan_data)
 
-@app.get("/api/ai/risk-stress")
+@app.get("/api/ai/stress-test")
 async def get_crisis_shocks():
     """Returns detailed historical crisis simulation results."""
     portfolio = data_manager.get_portfolio_data()

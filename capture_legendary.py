@@ -10,9 +10,9 @@ def run(playwright):
     base_path = os.path.join(os.path.dirname(__file__), 'docs', 'screenshots')
     os.makedirs(base_path, exist_ok=True)
 
-    print("Navigating to http://127.0.0.1:5173/legendary...")
+    print("Navigating to http://localhost:5173/legendary...")
     try:
-        page.goto("http://127.0.0.1:5173/legendary", wait_until="networkidle", timeout=60000)
+        page.goto("http://localhost:5173/legendary", wait_until="networkidle", timeout=60000)
         time.sleep(10) # Wait for yfinance fetch and Recharts to render
         page.screenshot(path=os.path.join(base_path, "legendary_portfolios_dynamic.png"))
         print("Saved legendary_portfolios_dynamic.png")

@@ -283,7 +283,7 @@ Data is cached locally in a **SQLite database** (`data/market_cache.db`) to mini
    Open your browser and navigate to **http://localhost:3001** (or the port indicated by the Vite console).
 
 > [!NOTE]
-> On the first run, the backend will seed the ticker registry. Subsequent starts are instantaneous. If you encounter CORS issues, ensure you are accessing the app via `localhost` rather than `127.0.0.1`.
+> On the first run, the backend will seed the ticker registry. Subsequent starts are instantaneous. If you encounter CORS issues, ensure you are accessing the app via `localhost`.
 
 ---
 

@@ -11,33 +11,41 @@ class YFinanceProvider(BaseFinancialProvider):
     
     def fetch_metrics(self, ticker_symbol: str) -> Optional[FinancialMetrics]:
         print(f"[{self.get_provider_name()}] Fetching data for {ticker_symbol}...")
-        ticker = yf.Ticker(ticker_symbol)
-        
         try:
-            income_stmt = ticker.income_stmt
-            balance_sheet = ticker.balance_sheet
-            info = ticker.info
+            ticker = yf.Ticker(ticker_symbol)
+            
+            # Use proxy timeouts if possible, or just rely on the library's internal behavior
+            # Ticker.info and statements can be slow; we wrap the whole block
+            income_stmt = ticker.get_income_stmt(proxy=None)
+            balance_sheet = ticker.get_balance_sheet(proxy=None)
+            info = ticker.info # This remains a property in many versions
             
             # EBIT
-            ebit = float(income_stmt.loc['EBIT'].iloc[0]) if 'EBIT' in income_stmt.index else None
+            ebit = None
+            if income_stmt is not None and not income_stmt.empty:
+                if 'EBIT' in income_stmt.index:
+                    ebit = float(income_stmt.loc['EBIT'].iloc[0])
             
             # Enterprise Value fallback
-            ev_raw = info.get('enterpriseValue') or info.get('marketCap')
-            ev = float(ev_raw) if ev_raw else None
+            ev = None
+            if info:
+                ev_raw = info.get('enterpriseValue') or info.get('marketCap')
+                ev = float(ev_raw) if ev_raw else None
             
             # Return on Capital metrics
-            ca_keys = ['Total Current Assets', 'Current Assets']
-            cl_keys = ['Total Current Liabilities', 'Current Liabilities']
-            
-            ca_raw = next((balance_sheet.loc[k].iloc[0] for k in ca_keys if k in balance_sheet.index), None)
-            cl_raw = next((balance_sheet.loc[k].iloc[0] for k in cl_keys if k in balance_sheet.index), None)
-            
-            total_assets_raw = balance_sheet.loc['Total Assets'].iloc[0] if 'Total Assets' in balance_sheet.index else None
-            
-            ca = float(ca_raw) if ca_raw else None
-            cl = float(cl_raw) if cl_raw else None
-            total_assets = float(total_assets_raw) if total_assets_raw else None
-            nfa = (total_assets - ca) if (total_assets is not None and ca is not None) else None
+            ca, cl, total_assets, nfa = None, None, None, None
+            if balance_sheet is not None and not balance_sheet.empty:
+                ca_keys = ['Total Current Assets', 'Current Assets']
+                cl_keys = ['Total Current Liabilities', 'Current Liabilities']
+                
+                ca_raw = next((balance_sheet.loc[k].iloc[0] for k in ca_keys if k in balance_sheet.index), None)
+                cl_raw = next((balance_sheet.loc[k].iloc[0] for k in cl_keys if k in balance_sheet.index), None)
+                total_assets_raw = balance_sheet.loc['Total Assets'].iloc[0] if 'Total Assets' in balance_sheet.index else None
+                
+                ca = float(ca_raw) if ca_raw else None
+                cl = float(cl_raw) if cl_raw else None
+                total_assets = float(total_assets_raw) if total_assets_raw else None
+                nfa = (total_assets - ca) if (total_assets is not None and ca is not None) else None
             
             # Create the standard Pydantic model
             return FinancialMetrics(
@@ -58,11 +66,11 @@ class YFinanceProvider(BaseFinancialProvider):
 
     def fetch_history(self, ticker_symbol: str, period: str) -> Optional[list[dict]]:
         """
-        Uses yfinance history() to get price data.
+        Uses yfinance history() to get price data with 10s timeout.
         """
         try:
             ticker = yf.Ticker(ticker_symbol)
-            hist = ticker.history(period=period)
+            hist = ticker.history(period=period, timeout=10)
             
             if hist.empty:
                 return None
@@ -87,13 +95,13 @@ class YFinanceProvider(BaseFinancialProvider):
         try:
             ticker = yf.Ticker(ticker_symbol)
             # Fetch from end of previous year to calculate first year's return accurately
-            hist = ticker.history(start=f"{start_year-1}-12-01")
+            hist = ticker.history(start=f"{start_year-1}-12-01", timeout=10)
             
             if hist.empty:
                 return None
                 
             # Resample to annual frequency, taking the last close price of each year
-            annual_prices = hist['Close'].resample('Y').last()
+            annual_prices = hist['Close'].resample('YE' if hasattr(pd, 'Series') else 'Y').last()
             returns = annual_prices.pct_change().dropna()
             
             # Format index to string year

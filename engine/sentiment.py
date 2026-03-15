@@ -18,7 +18,7 @@ class SentimentEngine:
     }
     
     NEGATIVE_WORDS = {
-        'recession', 'bearish', 'infaltion', 'underperform', 'downgrade', 'loss', 'slumped', 
+        'recession', 'bearish', 'inflation', 'underperform', 'downgrade', 'loss', 'slumped', 
         'sell', 'weak', 'contraction', 'crisis', 'crash', 'negative', 'breakdown',
         'downside', 'risk', 'overvalued', 'failure', 'cut', 'decrease', 'drop',
         'burden', 'uncertain', 'pessimistic', 'caution', 'headwind', 'drag'

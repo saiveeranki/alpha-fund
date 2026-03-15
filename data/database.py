@@ -50,6 +50,13 @@ class PortfolioHolding(Base):
     currency = Column(String, default='USD')  # EUR, USD, GBP, INR
     added_date = Column(DateTime, default=datetime.utcnow)
 
+class StockHistoryCache(Base):
+    """Stores full historical price series for delta-merging."""
+    __tablename__ = 'stock_history_cache'
+    ticker = Column(String, primary_key=True)
+    data = Column(String)  # JSON string of list of dicts: [{'date': '...', 'close': ...}]
+    last_updated = Column(DateTime, default=datetime.utcnow)
+
 class GenericCache(Base):
     """Generic cache for large API responses (stored as JSON)."""
     __tablename__ = 'generic_cache'
